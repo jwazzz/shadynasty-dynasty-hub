@@ -540,7 +540,7 @@ function PageChrome({
       <div className="page-shell">
         <header className="site-nav">
           <a className="brand-logo" href="/" aria-label="Shadynasty home">
-            <span className="logo-word">Shadynasty</span>
+            <span className="logo-word" data-text="Shadynasty">Shadynasty</span>
             <span className="logo-rule" aria-hidden="true" />
           </a>
           <nav aria-label="Primary">
@@ -1057,7 +1057,7 @@ export function LeagueSite() {
       <div className="page-shell">
         <header className="site-nav">
           <a className="brand-logo" href="#top" aria-label="Shadynasty home">
-            <span className="logo-word">Shadynasty</span>
+            <span className="logo-word" data-text="Shadynasty">Shadynasty</span>
             <span className="logo-rule" aria-hidden="true" />
           </a>
           <nav aria-label="Primary">

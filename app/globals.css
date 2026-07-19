@@ -102,42 +102,101 @@ button {
   z-index: 20;
 }
 
-.brand-mark {
-  align-items: center;
-  background: linear-gradient(135deg, var(--lime), var(--green));
-  border-radius: 6px;
-  color: #071006;
-  display: inline-flex;
-  font-weight: 900;
-  height: 40px;
-  justify-content: center;
-  width: 40px;
-}
-
 .brand-logo {
   align-items: center;
   color: var(--foreground);
   display: inline-grid;
-  gap: 6px;
-  min-height: 40px;
+  gap: 1px;
+  isolation: isolate;
+  min-height: 46px;
+  min-width: 190px;
+  overflow: visible;
+  padding: 4px 5px 2px;
+  position: relative;
+  transform: rotate(-2deg);
+}
+
+.brand-logo::before,
+.brand-logo::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+}
+
+.brand-logo::before {
+  background: linear-gradient(90deg, rgba(184, 255, 92, 0), rgba(30, 203, 119, 0.85), rgba(184, 255, 92, 0));
+  height: 5px;
+  left: -8px;
+  top: 7px;
+  transform: rotate(-27deg) skewX(-24deg);
+  width: 42px;
+}
+
+.brand-logo::after {
+  background: linear-gradient(90deg, rgba(30, 203, 119, 0), rgba(30, 203, 119, 0.76), rgba(184, 255, 92, 0));
+  bottom: 3px;
+  height: 5px;
+  right: 4px;
+  transform: rotate(-72deg) skewX(-18deg);
+  width: 54px;
 }
 
 .logo-word {
   color: var(--foreground);
-  display: block;
-  font-size: clamp(1rem, 1.7vw, 1.35rem);
+  display: inline-block;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
+  font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+  font-size: 1.5rem;
+  font-style: italic;
   font-weight: 900;
-  line-height: 0.92;
+  letter-spacing: 0;
+  line-height: 0.82;
+  position: relative;
   text-transform: uppercase;
+  transform: skew(-12deg);
+  -webkit-text-stroke: 0.7px #070806;
+  text-shadow:
+    2px 2px 0 #070806,
+    -1px 1px 0 #070806,
+    4px 5px 0 rgba(7, 8, 6, 0.58);
+}
+
+.logo-word::before {
+  color: rgba(7, 8, 6, 0.95);
+  content: attr(data-text);
+  inset: 0;
+  position: absolute;
+  transform: translate(4px, 4px);
+  z-index: -1;
+}
+
+.logo-word::after {
+  background:
+    linear-gradient(102deg, transparent 0 14%, rgba(247, 243, 232, 0.68) 14% 17%, transparent 17% 24%),
+    linear-gradient(108deg, transparent 0 42%, rgba(7, 8, 6, 0.62) 42% 45%, transparent 45% 100%);
+  content: "";
+  height: 130%;
+  left: -7%;
+  opacity: 0.5;
+  position: absolute;
+  top: -17%;
+  transform: rotate(-4deg);
+  width: 114%;
+  z-index: -1;
 }
 
 .logo-rule {
-  background: linear-gradient(90deg, var(--lime), var(--green), var(--gold));
+  background: linear-gradient(90deg, rgba(184, 255, 92, 0), var(--green), var(--lime), rgba(255, 200, 87, 0.82));
   border-radius: 999px;
-  box-shadow: 0 0 24px rgba(184, 255, 92, 0.34);
+  box-shadow:
+    0 0 18px rgba(184, 255, 92, 0.36),
+    10px 5px 0 rgba(30, 203, 119, 0.22);
   display: block;
-  height: 4px;
-  width: 100%;
+  height: 5px;
+  margin-left: 15px;
+  transform: rotate(-6deg) skewX(-18deg);
+  width: 82%;
 }
 
 .site-nav nav {
@@ -889,6 +948,14 @@ button {
     grid-template-columns: auto 1fr;
   }
 
+  .brand-logo {
+    min-width: 166px;
+  }
+
+  .logo-word {
+    font-size: 1.25rem;
+  }
+
   .site-nav nav {
     justify-content: end;
   }
@@ -938,8 +1005,24 @@ button {
     padding: 8px 9px;
   }
 
+  .brand-logo {
+    min-height: 40px;
+    min-width: 138px;
+    padding-inline: 2px;
+  }
+
+  .brand-logo::before {
+    height: 4px;
+    width: 32px;
+  }
+
+  .brand-logo::after {
+    height: 4px;
+    width: 38px;
+  }
+
   .logo-word {
-    font-size: 0.95rem;
+    font-size: 1rem;
   }
 
   .hero-stage {
