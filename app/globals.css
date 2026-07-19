@@ -1094,10 +1094,45 @@ button {
   .console-row,
   .pick-row,
   .standing-row,
-  .roster-row,
   .trade-row,
   .team-trade-row {
     grid-template-columns: 1fr;
+  }
+
+  .roster-table {
+    gap: 6px;
+  }
+
+  .roster-row {
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) 42px 64px;
+    min-height: 42px;
+    padding: 8px 10px;
+  }
+
+  .roster-row strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .roster-row span:nth-of-type(1) {
+    color: var(--gold);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    text-align: center;
+  }
+
+  .roster-row span:nth-of-type(2),
+  .roster-row small {
+    display: none;
+  }
+
+  .roster-row span:nth-of-type(3) {
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    text-align: right;
   }
 
   .trade-row small,
