@@ -568,7 +568,7 @@ export function HomePage() {
     <PageChrome active="home" status="League hub">
       <section className="hero-section route-hero home-hero" id="top">
         <div className="hero-copy">
-          <h1 className="home-title">Shadynasty League Hub</h1>
+          <h1 className="home-title">League Hub</h1>
           <p className="home-lede">
             Everything you ever need to know is just below.
           </p>
