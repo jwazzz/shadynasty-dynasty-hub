@@ -20,6 +20,8 @@ const SHEET_TABS = {
 
 type SheetKey = keyof typeof SHEET_TABS;
 
+const TRADE_GROUP_COLUMN_INDEX = 27;
+
 export const dynamic = "force-dynamic";
 
 function parseCsv(input: string) {
@@ -71,7 +73,35 @@ function parseCsv(input: string) {
   );
 }
 
+function addTradeGroupKeys(rows: string[][]) {
+  let tradeSideIndex = 0;
+
+  return rows.map((row, index) => {
+    const cleanRow = [...row];
+
+    if (index === 0) {
+      cleanRow[TRADE_GROUP_COLUMN_INDEX] = "Trade Group";
+      return cleanRow;
+    }
+
+    const hasTradeSide = Boolean(
+      cleanRow[0]?.trim() && cleanRow[2]?.trim() && cleanRow[3]?.trim(),
+    );
+
+    if (hasTradeSide) {
+      cleanRow[TRADE_GROUP_COLUMN_INDEX] = `trade-${Math.floor(tradeSideIndex / 2)}`;
+      tradeSideIndex += 1;
+    }
+
+    return cleanRow;
+  });
+}
+
 function sanitizeRows(rows: string[][], tabKey: string) {
+  if (tabKey === "trades") {
+    return addTradeGroupKeys(rows);
+  }
+
   if (!tabKey.startsWith("team-")) {
     return rows;
   }

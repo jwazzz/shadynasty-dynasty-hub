@@ -60,10 +60,17 @@ type PickHistory = {
   player: string;
 };
 
-type Trade = {
+type TradeSide = {
   assets: string;
   to: string;
   time: string;
+};
+
+type Trade = {
+  id: string;
+  time: string;
+  sides: TradeSide[];
+  teams: string[];
 };
 
 type OwnerTradeCount = {
@@ -103,6 +110,8 @@ const TRADE_OWNER_FILTERS = [
   { owner: "Joe H", tokens: ["Joe H", "Hack", "High Rollers"] },
   { owner: "John", tokens: ["John", "Johns Grand Team", "Luck My Chubb"] },
 ] as const;
+
+const TRADE_GROUP_COLUMN_INDEX = 27;
 
 const EMPTY_SHEET: SheetState = {
   rows: [],
@@ -324,14 +333,48 @@ function parseResults(rows: string[][]) {
 }
 
 function parseTrades(rows: string[][]) {
-  const trades: Trade[] = rows
-    .slice(1)
-    .map((row) => ({
+  const tradeSides: Array<TradeSide & { groupKey: string }> = [];
+
+  rows.slice(1).forEach((row) => {
+    const side = {
       assets: normalize(row[0]),
       to: normalize(row[2]),
       time: normalize(row[3]),
-    }))
-    .filter((trade) => trade.assets && trade.to && trade.time);
+    };
+
+    if (!side.assets || !side.to || !side.time) {
+      return;
+    }
+
+    tradeSides.push({
+      ...side,
+      groupKey:
+        normalize(row[TRADE_GROUP_COLUMN_INDEX]) ||
+        `trade-${Math.floor(tradeSides.length / 2)}`,
+    });
+  });
+
+  const groupedTrades = new Map<string, Trade>();
+
+  tradeSides.forEach(({ groupKey, ...side }) => {
+    const id = `${groupKey}-${side.time}`;
+    const currentTrade = groupedTrades.get(id) ?? {
+      id,
+      time: side.time,
+      sides: [],
+      teams: [],
+    };
+
+    currentTrade.sides.push(side);
+
+    if (!currentTrade.teams.some((team) => normalizeSearch(team) === normalizeSearch(side.to))) {
+      currentTrade.teams.push(side.to);
+    }
+
+    groupedTrades.set(id, currentTrade);
+  });
+
+  const trades = Array.from(groupedTrades.values());
 
   const ownerHeaderIndex = rows.findIndex((row) =>
     row.some((cell) => normalize(cell) === "Owners"),
@@ -352,7 +395,10 @@ function parseTrades(rows: string[][]) {
 
   return {
     allTrades: trades.slice().reverse(),
-    latestTrades: trades.slice(-12).reverse(),
+    latestTrades: tradeSides
+      .slice(-12)
+      .map(({ groupKey, ...side }) => side)
+      .reverse(),
     totalTrades: trades.length,
     ownerCounts,
   };
@@ -389,9 +435,9 @@ function tradeMatchesOwner(trade: Trade, owner: string) {
     return false;
   }
 
-  const searchableTrade = `${trade.assets} ${trade.to}`;
-
-  return filter.tokens.some((token) => containsSearchToken(searchableTrade, token));
+  return filter.tokens.some((token) =>
+    trade.sides.some((side) => containsSearchToken(side.to, token)),
+  );
 }
 
 function parseTeam(rows: string[][], fallbackOwner: string): TeamSummary {
@@ -760,7 +806,11 @@ export function TradesPage() {
     const searchQuery = normalizeSearch(tradeQuery);
 
     return trades.allTrades.filter((trade) => {
-      const searchableTrade = `${trade.assets} ${trade.to} ${trade.time}`;
+      const searchableTrade = [
+        trade.time,
+        ...trade.teams,
+        ...trade.sides.flatMap((side) => [side.assets, side.to]),
+      ].join(" ");
       const matchesSearch = !searchQuery || normalizeSearch(searchableTrade).includes(searchQuery);
       const matchesOwners =
         selectedOwners.length === 0 ||
@@ -788,8 +838,8 @@ export function TradesPage() {
           <p className="eyebrow">All trades</p>
           <h2>All Trades</h2>
           <p>
-            Every trade from the All Trades tab, searchable by player, pick,
-            owner, destination, or season.
+            Every full trade from the All Trades tab. Team buttons match the
+            Team column, and search can find players, picks, teams, or seasons.
           </p>
         </div>
         <div className="trade-controls">
@@ -831,12 +881,21 @@ export function TradesPage() {
               <h3>{activeTradeLabel}</h3>
             </div>
             <div className="trade-list">
-              {filteredTrades.map((trade, index) => (
-                <div className="trade-row" key={`${trade.time}-${trade.assets}-${index}`}>
-                  <span>{trade.time}</span>
-                  <strong>{trade.assets}</strong>
-                  <small>To {trade.to}</small>
-                </div>
+              {filteredTrades.map((trade) => (
+                <article className="trade-group" key={trade.id}>
+                  <div className="trade-group-title">
+                    <span>{trade.time}</span>
+                    <strong>{trade.teams.join(" / ")}</strong>
+                  </div>
+                  <div className="trade-sides">
+                    {trade.sides.map((side, index) => (
+                      <div className="trade-side-row" key={`${trade.id}-${side.to}-${index}`}>
+                        <strong>{side.assets}</strong>
+                        <small>To {side.to}</small>
+                      </div>
+                    ))}
+                  </div>
+                </article>
               ))}
             </div>
             {!tradesSheet.loading && filteredTrades.length === 0 && (

@@ -724,6 +724,55 @@ button {
   grid-column: 2;
 }
 
+.trade-group {
+  background: rgba(7, 8, 6, 0.35);
+  border: 1px solid rgba(247, 243, 232, 0.09);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.trade-group-title {
+  align-items: baseline;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.trade-group-title span {
+  color: var(--gold);
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+}
+
+.trade-group-title strong {
+  text-align: right;
+}
+
+.trade-sides {
+  display: grid;
+  gap: 8px;
+}
+
+.trade-side-row {
+  align-items: center;
+  background: rgba(247, 243, 232, 0.04);
+  border: 1px solid rgba(247, 243, 232, 0.08);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.42fr);
+  min-height: 52px;
+  padding: 10px 12px;
+}
+
+.trade-side-row small {
+  color: var(--muted);
+  text-align: right;
+}
+
 .bar-row {
   display: grid;
   gap: 8px;
@@ -969,6 +1018,21 @@ button {
   .trade-row small,
   .team-trade-row small {
     grid-column: auto;
+  }
+
+  .trade-group-title,
+  .trade-side-row {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .trade-group-title {
+    display: grid;
+  }
+
+  .trade-group-title strong,
+  .trade-side-row small {
+    text-align: left;
   }
 }
 
