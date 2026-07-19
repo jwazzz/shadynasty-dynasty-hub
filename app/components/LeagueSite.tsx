@@ -841,7 +841,7 @@ export function TradesPage() {
       const matchesSearch = !searchQuery || normalizeSearch(searchableTrade).includes(searchQuery);
       const matchesOwners =
         selectedOwners.length === 0 ||
-        selectedOwners.some((owner) => tradeMatchesOwner(trade, owner));
+        selectedOwners.every((owner) => tradeMatchesOwner(trade, owner));
 
       return matchesSearch && matchesOwners;
     });
@@ -866,7 +866,7 @@ export function TradesPage() {
           <h2>All Trades</h2>
           <p>
             Every full trade from the All Trades tab. Team buttons match the
-            Team column, and search can find players, picks, teams, or seasons.
+            Team column; multiple selected teams show only shared trades.
           </p>
         </div>
         <div className="trade-controls">
