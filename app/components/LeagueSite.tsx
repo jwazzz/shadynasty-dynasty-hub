@@ -267,6 +267,32 @@ function parseDraft(rows: string[][]): DraftPick[] {
   return picks;
 }
 
+function getDraftPickKey(pick: DraftPick) {
+  return `${pick.round}-${pick.pick}-${pick.team}`;
+}
+
+function getCurrentDraftPickKey(picks: DraftPick[]) {
+  const currentPick = picks.find((pick) => !pick.selection);
+
+  return currentPick ? getDraftPickKey(currentPick) : "";
+}
+
+function getDraftPickStatus(pick: DraftPick, currentPickKey: string) {
+  if (pick.selection) {
+    return pick.selection;
+  }
+
+  return getDraftPickKey(pick) === currentPickKey ? "On the clock" : "TBD";
+}
+
+function getDraftPickClass(pick: DraftPick, currentPickKey: string) {
+  if (pick.selection) {
+    return "is-selected";
+  }
+
+  return getDraftPickKey(pick) === currentPickKey ? "is-open" : "is-pending";
+}
+
 function parseResults(rows: string[][]) {
   const yearRow = rows[1] ?? [];
   const seasons: SeasonBlock[] = [];
@@ -654,6 +680,7 @@ export function DraftPage() {
   const draftGroups = useMemo(() => groupDraftByRound(draftPicks), [draftPicks]);
   const openPicks = draftPicks.filter((pick) => !pick.selection).length;
   const selectedPicks = draftPicks.length - openPicks;
+  const currentDraftPickKey = getCurrentDraftPickKey(draftPicks);
 
   useParallaxMotion();
 
@@ -696,12 +723,12 @@ export function DraftPage() {
                 <div className="pick-list">
                   {picks.map((pick) => (
                     <div
-                      className={`pick-row ${pick.selection ? "is-selected" : "is-open"}`}
-                      key={`${round}-${pick.pick}-${pick.team}`}
+                      className={`pick-row ${getDraftPickClass(pick, currentDraftPickKey)}`}
+                      key={getDraftPickKey(pick)}
                     >
                       <span className="pick-number">{pick.pick}</span>
                       <strong>{pick.team}</strong>
-                      <span>{pick.selection || "On the clock"}</span>
+                      <span>{getDraftPickStatus(pick, currentDraftPickKey)}</span>
                     </div>
                   ))}
                 </div>
@@ -1102,6 +1129,7 @@ export function LeagueSite() {
 
   const openPicks = draftPicks.filter((pick) => !pick.selection).length;
   const selectedPicks = draftPicks.length - openPicks;
+  const currentDraftPickKey = getCurrentDraftPickKey(draftPicks);
 
   return (
     <main className="dynasty-site">
@@ -1157,10 +1185,10 @@ export function LeagueSite() {
               </div>
               <div className="console-list">
                 {draftPicks.slice(0, 5).map((pick) => (
-                  <div className="console-row" key={`${pick.round}-${pick.pick}`}>
+                  <div className="console-row" key={getDraftPickKey(pick)}>
                     <span>{pick.pick}</span>
                     <strong>{pick.team}</strong>
-                    <small>{pick.selection || "On the clock"}</small>
+                    <small>{getDraftPickStatus(pick, currentDraftPickKey)}</small>
                   </div>
                 ))}
                 {draftSheet.loading && <div className="console-row muted">Loading draft...</div>}
@@ -1205,12 +1233,12 @@ export function LeagueSite() {
                   <div className="pick-list">
                     {picks.map((pick) => (
                       <div
-                        className={`pick-row ${pick.selection ? "is-selected" : "is-open"}`}
-                        key={`${round}-${pick.pick}-${pick.team}`}
+                        className={`pick-row ${getDraftPickClass(pick, currentDraftPickKey)}`}
+                        key={getDraftPickKey(pick)}
                       >
                         <span className="pick-number">{pick.pick}</span>
                         <strong>{pick.team}</strong>
-                        <span>{pick.selection || "On the clock"}</span>
+                        <span>{getDraftPickStatus(pick, currentDraftPickKey)}</span>
                       </div>
                     ))}
                   </div>
