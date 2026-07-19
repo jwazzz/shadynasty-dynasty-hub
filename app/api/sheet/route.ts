@@ -1,3 +1,4 @@
+import { unzipSync } from "fflate";
 import { NextResponse } from "next/server";
 
 const SPREADSHEET_ID = "17qdopVe8lPhWzDjBwGz2cNHFCngT783O-YEe5O1R700";
@@ -21,6 +22,7 @@ const SHEET_TABS = {
 type SheetKey = keyof typeof SHEET_TABS;
 
 const TRADE_GROUP_COLUMN_INDEX = 27;
+const decoder = new TextDecoder();
 
 export const dynamic = "force-dynamic";
 
@@ -73,7 +75,7 @@ function parseCsv(input: string) {
   );
 }
 
-function addTradeGroupKeys(rows: string[][]) {
+function addPairTradeGroupKeys(rows: string[][]) {
   let tradeSideIndex = 0;
 
   return rows.map((row, index) => {
@@ -97,9 +99,168 @@ function addTradeGroupKeys(rows: string[][]) {
   });
 }
 
+function getXmlAttribute(source: string, name: string) {
+  return new RegExp(`${name}="([^"]*)"`).exec(source)?.[1] ?? "";
+}
+
+function decodeXml(value: string) {
+  return value
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+}
+
+function columnIndexFromReference(reference: string) {
+  const letters = reference.match(/^[A-Z]+/i)?.[0] ?? "";
+
+  return letters
+    .toUpperCase()
+    .split("")
+    .reduce((total, letter) => total * 26 + letter.charCodeAt(0) - 64, 0) - 1;
+}
+
+function parseSharedStrings(sharedStringsXml: string) {
+  return [...sharedStringsXml.matchAll(/<si>([\s\S]*?)<\/si>/g)].map((match) =>
+    [...match[1].matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)]
+      .map((textMatch) => decodeXml(textMatch[1]))
+      .join(""),
+  );
+}
+
+function parseStyleFillIds(stylesXml: string) {
+  const cellXfsSection = stylesXml.match(/<cellXfs[^>]*>([\s\S]*?)<\/cellXfs>/)?.[1] ?? "";
+
+  return [...cellXfsSection.matchAll(/<xf\b([^>]*)>/g)].map((match) =>
+    getXmlAttribute(match[1], "fillId") || "0",
+  );
+}
+
+function parseCellValue(cellAttributes: string, cellXml: string, sharedStrings: string[]) {
+  const type = getXmlAttribute(cellAttributes, "t");
+  const rawValue = cellXml.match(/<v>([\s\S]*?)<\/v>/)?.[1] ?? "";
+
+  if (type === "s") {
+    return sharedStrings[Number(rawValue)] ?? "";
+  }
+
+  if (type === "inlineStr") {
+    return [...cellXml.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)]
+      .map((match) => decodeXml(match[1]))
+      .join("");
+  }
+
+  return decodeXml(rawValue);
+}
+
+function addStyledTradeGroupKeys(rows: string[][], rowStyleKeys: Map<number, string>) {
+  let tradeGroupIndex = -1;
+  let tradeSideIndex = 0;
+  let previousStyleKey = "";
+
+  return rows.map((row, index) => {
+    const cleanRow = [...row];
+
+    if (index === 0) {
+      cleanRow[TRADE_GROUP_COLUMN_INDEX] = "Trade Group";
+      return cleanRow;
+    }
+
+    const hasTradeSide = Boolean(
+      cleanRow[0]?.trim() && cleanRow[2]?.trim() && cleanRow[3]?.trim(),
+    );
+
+    if (!hasTradeSide) {
+      return cleanRow;
+    }
+
+    const styleKey = rowStyleKeys.get(index + 1) ?? "";
+
+    if (tradeGroupIndex < 0) {
+      tradeGroupIndex = 0;
+    } else if (styleKey && previousStyleKey && styleKey !== previousStyleKey) {
+      tradeGroupIndex += 1;
+    } else if (!styleKey) {
+      tradeGroupIndex = Math.floor(tradeSideIndex / 2);
+    }
+
+    cleanRow[TRADE_GROUP_COLUMN_INDEX] = `trade-${tradeGroupIndex}`;
+    previousStyleKey = styleKey || previousStyleKey;
+    tradeSideIndex += 1;
+
+    return cleanRow;
+  });
+}
+
+function parseXlsxRows(input: ArrayBuffer) {
+  const files = unzipSync(new Uint8Array(input));
+  const worksheetXml = files["xl/worksheets/sheet1.xml"];
+  const stylesXml = files["xl/styles.xml"];
+
+  if (!worksheetXml || !stylesXml) {
+    throw new Error("Missing worksheet data.");
+  }
+
+  const sharedStrings = files["xl/sharedStrings.xml"]
+    ? parseSharedStrings(decoder.decode(files["xl/sharedStrings.xml"]))
+    : [];
+  const styleFillIds = parseStyleFillIds(decoder.decode(stylesXml));
+  const rows: string[][] = [];
+  const rowStyleKeys = new Map<number, string>();
+  const worksheet = decoder.decode(worksheetXml);
+
+  for (const rowMatch of worksheet.matchAll(/<row\b([^>]*)>([\s\S]*?)<\/row>/g)) {
+    const rowNumber = Number(getXmlAttribute(rowMatch[1], "r"));
+    const row: string[] = [];
+
+    for (const cellMatch of rowMatch[2].matchAll(/<c\b([^>]*)>([\s\S]*?)<\/c>/g)) {
+      const cellAttributes = cellMatch[1];
+      const reference = getXmlAttribute(cellAttributes, "r");
+      const columnIndex = columnIndexFromReference(reference);
+
+      if (columnIndex < 0) {
+        continue;
+      }
+
+      row[columnIndex] = parseCellValue(cellAttributes, cellMatch[2], sharedStrings).trim();
+
+      if (columnIndex === 0) {
+        const styleIndex = Number(getXmlAttribute(cellAttributes, "s"));
+        rowStyleKeys.set(rowNumber, styleFillIds[styleIndex] ?? `style-${styleIndex}`);
+      }
+    }
+
+    rows[rowNumber - 1] = row;
+  }
+
+  return addStyledTradeGroupKeys(rows.map((row) => row ?? []), rowStyleKeys);
+}
+
+async function fetchStyledTradeRows(gid: string) {
+  const xlsxUrl = new URL(
+    `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export`,
+  );
+  xlsxUrl.searchParams.set("format", "xlsx");
+  xlsxUrl.searchParams.set("gid", gid);
+
+  const response = await fetch(xlsxUrl, {
+    cache: "no-store",
+    headers: {
+      "Cache-Control": "no-cache",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Google Sheets returned ${response.status}.`);
+  }
+
+  return parseXlsxRows(await response.arrayBuffer());
+}
+
 function sanitizeRows(rows: string[][], tabKey: string) {
   if (tabKey === "trades") {
-    return addTradeGroupKeys(rows);
+    return addPairTradeGroupKeys(rows);
   }
 
   if (!tabKey.startsWith("team-")) {
@@ -133,6 +294,28 @@ export async function GET(request: Request) {
   }
 
   const tab = SHEET_TABS[requestedTab as SheetKey];
+
+  if (requestedTab === "trades") {
+    try {
+      const rows = await fetchStyledTradeRows(tab.gid);
+
+      if (rows.length) {
+        return NextResponse.json(
+          {
+            key: requestedTab,
+            title: tab.title,
+            gid: tab.gid,
+            rows,
+            fetchedAt: new Date().toISOString(),
+          },
+          { headers: { "Cache-Control": "no-store" } },
+        );
+      }
+    } catch {
+      // Fall back to CSV below if the styled export is temporarily unavailable.
+    }
+  }
+
   const csvUrl = new URL(
     `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export`,
   );
