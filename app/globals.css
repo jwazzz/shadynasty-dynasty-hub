@@ -171,6 +171,12 @@ button {
   min-height: 72vh;
 }
 
+.home-hero {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 980px;
+  min-height: 62vh;
+}
+
 .route-section {
   min-height: calc(100vh - 96px);
   padding-top: clamp(56px, 7vw, 92px);

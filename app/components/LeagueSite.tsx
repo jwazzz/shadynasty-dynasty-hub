@@ -510,19 +510,11 @@ function PageChrome({
 }
 
 export function HomePage() {
-  const draftSheet = useSheet("draft", 10000);
-  const resultsSheet = useSheet("results");
-  const tradesSheet = useSheet("trades");
-  const draftPicks = useMemo(() => parseDraft(draftSheet.rows), [draftSheet.rows]);
-  const results = useMemo(() => parseResults(resultsSheet.rows), [resultsSheet.rows]);
-  const trades = useMemo(() => parseTrades(tradesSheet.rows), [tradesSheet.rows]);
-  const openPicks = draftPicks.filter((pick) => !pick.selection).length;
-
   useParallaxMotion();
 
   return (
-    <PageChrome active="home" status={`Draft sync ${formatFetchTime(draftSheet.fetchedAt)}`}>
-      <section className="hero-section route-hero" id="top">
+    <PageChrome active="home" status="League hub">
+      <section className="hero-section route-hero home-hero" id="top">
         <div className="hero-copy">
           <p className="eyebrow">Dynasty league command center</p>
           <h1>Shadynasty</h1>
@@ -533,37 +525,6 @@ export function HomePage() {
           <div className="hero-actions" aria-label="Quick links">
             <a href="/draft">Open draft board</a>
             <a href="/teams">Browse teams</a>
-          </div>
-        </div>
-
-        <div className="hero-stage" aria-label="League snapshot">
-          <img className="hero-art" src="/og.png" alt="" aria-hidden="true" />
-          <div className="tilt-card tilt-card-back">
-            <span>Latest leader</span>
-            <strong>{results.latestSeason?.standings[0]?.team ?? "Loading"}</strong>
-            <small>{results.latestSeason?.year ?? "League results"}</small>
-          </div>
-          <div className="tilt-card tilt-card-mid">
-            <span>Trade Market</span>
-            <strong>{trades.totalTrades || "..."}</strong>
-            <small>recorded moves</small>
-          </div>
-          <div className="draft-console">
-            <div>
-              <span className="console-kicker">2026 Draft</span>
-              <strong>{draftPicks.length || 0} picks</strong>
-              <small>{openPicks} still open</small>
-            </div>
-            <div className="console-list">
-              {draftPicks.slice(0, 5).map((pick) => (
-                <div className="console-row" key={`${pick.round}-${pick.pick}`}>
-                  <span>{pick.pick}</span>
-                  <strong>{pick.team}</strong>
-                  <small>{pick.selection || "On the clock"}</small>
-                </div>
-              ))}
-              {draftSheet.loading && <div className="console-row muted">Loading draft...</div>}
-            </div>
           </div>
         </div>
       </section>
