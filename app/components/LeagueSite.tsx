@@ -540,8 +540,7 @@ function PageChrome({
       <div className="page-shell">
         <header className="site-nav">
           <a className="brand-logo" href="/" aria-label="Shadynasty home">
-            <span className="logo-word" data-text="Shadynasty">Shadynasty</span>
-            <span className="logo-rule" aria-hidden="true" />
+            <img className="site-logo-image" src="/shadynasty-logo.png" alt="" />
           </a>
           <nav aria-label="Primary">
             {NAV_LINKS.map((link) => (
@@ -1051,8 +1050,7 @@ export function LeagueSite() {
       <div className="page-shell">
         <header className="site-nav">
           <a className="brand-logo" href="#top" aria-label="Shadynasty home">
-            <span className="logo-word" data-text="Shadynasty">Shadynasty</span>
-            <span className="logo-rule" aria-hidden="true" />
+            <img className="site-logo-image" src="/shadynasty-logo.png" alt="" />
           </a>
           <nav aria-label="Primary">
             <a href="#draft">Draft</a>
