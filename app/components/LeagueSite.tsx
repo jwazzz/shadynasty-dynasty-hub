@@ -568,16 +568,10 @@ export function HomePage() {
     <PageChrome active="home" status="League hub">
       <section className="hero-section route-hero home-hero" id="top">
         <div className="hero-copy">
-          <p className="eyebrow">Dynasty league command center</p>
-          <h1>Shadynasty</h1>
-          <p className="hero-lede">
-            The league is now split into focused rooms: live draft board, history,
-            trade archive, and team views.
+          <h1 className="home-title">Shadynasty League Hub</h1>
+          <p className="home-lede">
+            Everything you ever need to know is just below.
           </p>
-          <div className="hero-actions" aria-label="Quick links">
-            <a href="/draft">Open draft board</a>
-            <a href="/teams">Browse teams</a>
-          </div>
         </div>
       </section>
 
