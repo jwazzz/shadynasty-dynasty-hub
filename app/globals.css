@@ -1104,8 +1104,8 @@ button {
   }
 
   .roster-row {
-    gap: 8px;
-    grid-template-columns: minmax(0, 1fr) 42px 64px;
+    gap: 7px;
+    grid-template-columns: minmax(0, 1fr) 36px 42px 60px;
     min-height: 42px;
     padding: 8px 10px;
   }
@@ -1123,9 +1123,15 @@ button {
     text-align: center;
   }
 
-  .roster-row span:nth-of-type(2),
   .roster-row small {
     display: none;
+  }
+
+  .roster-row span:nth-of-type(2) {
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    text-align: center;
   }
 
   .roster-row span:nth-of-type(3) {
