@@ -224,12 +224,11 @@ button {
 }
 
 .home-title {
-  color: var(--lime);
-  font-size: 5.6rem;
-  line-height: 0.9;
+  color: var(--foreground);
+  font-size: clamp(2.4rem, 6vw, 5.8rem);
+  line-height: 0.88;
   margin: 0;
   max-width: 980px;
-  text-shadow: 0 0 34px rgba(184, 255, 92, 0.2);
 }
 
 .home-lede {
@@ -947,10 +946,6 @@ button {
     padding: 68px 0 36px;
   }
 
-  .home-title {
-    font-size: 4.1rem;
-  }
-
   .hero-stage {
     min-height: 520px;
   }
@@ -993,10 +988,6 @@ button {
 
   .site-logo-image {
     height: 38px;
-  }
-
-  .home-title {
-    font-size: 3rem;
   }
 
   .home-lede {
