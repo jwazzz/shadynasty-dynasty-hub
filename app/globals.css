@@ -114,6 +114,32 @@ button {
   width: 40px;
 }
 
+.brand-logo {
+  align-items: center;
+  color: var(--foreground);
+  display: inline-grid;
+  gap: 6px;
+  min-height: 40px;
+}
+
+.logo-word {
+  color: var(--foreground);
+  display: block;
+  font-size: clamp(1rem, 1.7vw, 1.35rem);
+  font-weight: 900;
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+
+.logo-rule {
+  background: linear-gradient(90deg, var(--lime), var(--green), var(--gold));
+  border-radius: 999px;
+  box-shadow: 0 0 24px rgba(184, 255, 92, 0.34);
+  display: block;
+  height: 4px;
+  width: 100%;
+}
+
 .site-nav nav {
   display: flex;
   flex-wrap: wrap;
@@ -518,6 +544,68 @@ button {
   grid-template-columns: minmax(0, 1.18fr) minmax(320px, 0.82fr);
 }
 
+.trade-controls {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(260px, 0.48fr) minmax(0, 1fr);
+  margin: 0 0 16px;
+}
+
+.trade-search {
+  background: rgba(7, 8, 6, 0.44);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.trade-search span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.trade-search input {
+  background: transparent;
+  border: 0;
+  color: var(--foreground);
+  font: inherit;
+  min-width: 0;
+  outline: 0;
+}
+
+.trade-search input::placeholder {
+  color: rgba(247, 243, 232, 0.42);
+}
+
+.owner-filter-bar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.owner-filter-bar button {
+  background: rgba(7, 8, 6, 0.44);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  min-height: 44px;
+  padding: 10px 12px;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.owner-filter-bar button:hover,
+.owner-filter-bar button.active {
+  background: rgba(184, 255, 92, 0.12);
+  border-color: rgba(184, 255, 92, 0.52);
+  color: var(--foreground);
+  transform: translateY(-2px);
+}
+
 .team-dashboard {
   grid-template-columns: 300px minmax(0, 1.1fr) minmax(280px, 0.78fr);
 }
@@ -782,6 +870,7 @@ button {
   .hero-section,
   .results-layout,
   .trade-layout,
+  .trade-controls,
   .team-dashboard {
     grid-template-columns: 1fr;
   }
@@ -847,6 +936,10 @@ button {
   .site-nav nav a {
     font-size: 0.84rem;
     padding: 8px 9px;
+  }
+
+  .logo-word {
+    font-size: 0.95rem;
   }
 
   .hero-stage {

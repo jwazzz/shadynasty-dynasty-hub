@@ -91,6 +91,19 @@ const TEAM_TABS = [
   { key: "team-john", owner: "John", alias: "John" },
 ] as const;
 
+const TRADE_OWNER_FILTERS = [
+  { owner: "Craig", tokens: ["Craig"] },
+  { owner: "Danny", tokens: ["Danny", "Dannys", "Turd Ferguson"] },
+  { owner: "DJ", tokens: ["DJ", "All Hail Houston", "Ma'Homies"] },
+  { owner: "Eddie", tokens: ["Eddie", "I Know You Want Me"] },
+  { owner: "Evan", tokens: ["Evan", "Evans", "Flowers For Evan"] },
+  { owner: "Jeremy", tokens: ["Jeremy", "Jwaz", "Mongorians", "MilkWasABadChoice", "BYE Week"] },
+  { owner: "Joe C", tokens: ["Joe C", "Corrado", "London Has Fallen"] },
+  { owner: "Joe F", tokens: ["Joe F", "Ferraro", "Super Happy Fun Time"] },
+  { owner: "Joe H", tokens: ["Joe H", "Hack", "High Rollers"] },
+  { owner: "John", tokens: ["John", "Johns Grand Team", "Luck My Chubb"] },
+] as const;
+
 const EMPTY_SHEET: SheetState = {
   rows: [],
   fetchedAt: "",
@@ -166,6 +179,22 @@ function normalize(value: string | undefined) {
 
 function parseNumber(value: string | undefined) {
   return Number((value ?? "").replace(/,/g, "")) || 0;
+}
+
+function normalizeSearch(value: string | undefined) {
+  return normalize(value)
+    .toLowerCase()
+    .replace(/\u00a0/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function containsSearchToken(value: string, token: string) {
+  const haystack = ` ${normalizeSearch(value)} `;
+  const needle = ` ${normalizeSearch(token)} `;
+
+  return needle.trim() ? haystack.includes(needle) : false;
 }
 
 function formatFetchTime(iso: string) {
@@ -322,10 +351,47 @@ function parseTrades(rows: string[][]) {
     : [];
 
   return {
+    allTrades: trades.slice().reverse(),
     latestTrades: trades.slice(-12).reverse(),
     totalTrades: trades.length,
     ownerCounts,
   };
+}
+
+function parsePositionCounts(rows: string[][]) {
+  const allowedPositions = new Set(["QB", "RB", "WR", "TE", "DEF", "K", "Total"]);
+  const positionsHeaderIndex = rows.findIndex((row) =>
+    row.some((cell) => normalize(cell) === "Positions"),
+  );
+  const rosterBreakdownIndex = rows.findIndex((row) =>
+    row.some((cell) => normalize(cell) === "Roster Breakdown"),
+  );
+
+  const headerIndex = positionsHeaderIndex >= 0 ? positionsHeaderIndex : rosterBreakdownIndex;
+  const label = positionsHeaderIndex >= 0 ? "Positions" : "Roster Breakdown";
+  const positionsColumn = rows[headerIndex]?.findIndex((cell) => normalize(cell) === label) ?? -1;
+
+  return positionsColumn >= 0
+    ? rows
+        .slice(headerIndex + 1, headerIndex + 10)
+        .map((row) => ({
+          pos: normalize(row[positionsColumn]),
+          count: normalize(row[positionsColumn + 1]),
+        }))
+        .filter((row) => allowedPositions.has(row.pos))
+    : [];
+}
+
+function tradeMatchesOwner(trade: Trade, owner: string) {
+  const filter = TRADE_OWNER_FILTERS.find((entry) => entry.owner === owner);
+
+  if (!filter) {
+    return false;
+  }
+
+  const searchableTrade = `${trade.assets} ${trade.to}`;
+
+  return filter.tokens.some((token) => containsSearchToken(searchableTrade, token));
 }
 
 function parseTeam(rows: string[][], fallbackOwner: string): TeamSummary {
@@ -358,22 +424,7 @@ function parseTeam(rows: string[][], fallbackOwner: string): TeamSummary {
     .filter((player) => player.player && player.pos)
     .slice(0, 16);
 
-  const positionsHeaderIndex = rows.findIndex((row) =>
-    row.some((cell) => normalize(cell) === "Positions"),
-  );
-  const positionsColumn = rows[positionsHeaderIndex]?.findIndex(
-    (cell) => normalize(cell) === "Positions",
-  ) ?? -1;
-
-  const positions = positionsColumn >= 0
-    ? rows
-        .slice(positionsHeaderIndex + 1, positionsHeaderIndex + 9)
-        .map((row) => ({
-          pos: normalize(row[positionsColumn]),
-          count: normalize(row[positionsColumn + 1]),
-        }))
-        .filter((row) => ["QB", "RB", "WR", "TE", "DEF", "K", "Total"].includes(row.pos))
-    : [];
+  const positions = parsePositionCounts(rows);
 
   const collectPickColumn = (columnIndex: number) =>
     columnIndex >= 0
@@ -443,8 +494,8 @@ function getOwnerTab(key: string) {
 const NAV_LINKS = [
   { href: "/", label: "Home", id: "home" },
   { href: "/draft", label: "Draft", id: "draft" },
-  { href: "/results", label: "Results", id: "results" },
-  { href: "/trades", label: "Trades", id: "trades" },
+  { href: "/results", label: "League History", id: "results" },
+  { href: "/trades", label: "All Trades", id: "trades" },
   { href: "/teams", label: "Teams", id: "teams" },
 ] as const;
 
@@ -488,8 +539,9 @@ function PageChrome({
       <div className="field-grid" aria-hidden="true" />
       <div className="page-shell">
         <header className="site-nav">
-          <a className="brand-mark" href="/" aria-label="Shadynasty home">
-            <span>SD</span>
+          <a className="brand-logo" href="/" aria-label="Shadynasty home">
+            <span className="logo-word">Shadynasty</span>
+            <span className="logo-rule" aria-hidden="true" />
           </a>
           <nav aria-label="Primary">
             {NAV_LINKS.map((link) => (
@@ -538,13 +590,13 @@ export function HomePage() {
           </a>
           <a className="hub-card" href="/results">
             <span>Archive</span>
-            <strong>Results</strong>
+            <strong>League History</strong>
             <small>Season records and all-time leaders.</small>
           </a>
           <a className="hub-card" href="/trades">
             <span>Market</span>
-            <strong>Trades</strong>
-            <small>Ledger and owner activity.</small>
+            <strong>All Trades</strong>
+            <small>Search the full ledger by team.</small>
           </a>
           <a className="hub-card" href="/teams">
             <span>Rosters</span>
@@ -633,37 +685,21 @@ export function ResultsPage() {
   useParallaxMotion();
 
   return (
-    <PageChrome active="results" status="League results">
+    <PageChrome active="results" status="League history">
       <section className="section-band route-section results-band" id="results">
         <div className="section-heading">
           <p className="eyebrow">League history</p>
-          <h2>Results and records</h2>
+          <h2>League History</h2>
           <p>
-            Season standings, all-time records, and the five-year points
-            leaderboard from the League Results tab.
+            All-time records, the all-decade points race, and the 2025 league
+            standings from the League Results tab.
           </p>
         </div>
         <div className="results-layout">
-          <article className="standings-panel">
-            <div className="panel-title">
-              <span>{results.latestSeason?.year ?? "2025"}</span>
-              <h3>Latest standings</h3>
-            </div>
-            <div className="standings-table">
-              {(results.latestSeason?.standings ?? []).map((standing) => (
-                <div className="standing-row" key={`${standing.place}-${standing.team}`}>
-                  <span>{standing.place}</span>
-                  <strong>{standing.team}</strong>
-                  <span>{standing.record}</span>
-                  <span>{standing.pointsFor}</span>
-                </div>
-              ))}
-            </div>
-          </article>
           <article className="leaderboard-panel">
             <div className="panel-title">
               <span>All time</span>
-              <h3>Records</h3>
+              <h3>All-Time Records</h3>
             </div>
             <div className="mini-list">
               {results.allTime.slice(0, 10).map((entry, index) => (
@@ -678,7 +714,7 @@ export function ResultsPage() {
           <article className="leaderboard-panel decade-panel">
             <div className="panel-title">
               <span>2021-2025</span>
-              <h3>Points race</h3>
+              <h3>All Decade Points Race</h3>
             </div>
             <div className="bar-list">
               {results.decade.map((entry) => {
@@ -697,6 +733,22 @@ export function ResultsPage() {
               })}
             </div>
           </article>
+          <article className="standings-panel">
+            <div className="panel-title">
+              <span>{results.latestSeason?.year ?? "2025"}</span>
+              <h3>2025 League Standings</h3>
+            </div>
+            <div className="standings-table">
+              {(results.latestSeason?.standings ?? []).map((standing) => (
+                <div className="standing-row" key={`${standing.place}-${standing.team}`}>
+                  <span>{standing.place}</span>
+                  <strong>{standing.team}</strong>
+                  <span>{standing.record}</span>
+                  <span>{standing.pointsFor}</span>
+                </div>
+              ))}
+            </div>
+          </article>
         </div>
         {resultsSheet.error && (
           <StatusMessage label="Results feed unavailable" detail={resultsSheet.error} />
@@ -707,30 +759,86 @@ export function ResultsPage() {
 }
 
 export function TradesPage() {
+  const [selectedOwners, setSelectedOwners] = useState<string[]>([]);
+  const [tradeQuery, setTradeQuery] = useState("");
   const tradesSheet = useSheet("trades");
   const trades = useMemo(() => parseTrades(tradesSheet.rows), [tradesSheet.rows]);
+  const filteredTrades = useMemo(() => {
+    const searchQuery = normalizeSearch(tradeQuery);
+
+    return trades.allTrades.filter((trade) => {
+      const searchableTrade = `${trade.assets} ${trade.to} ${trade.time}`;
+      const matchesSearch = !searchQuery || normalizeSearch(searchableTrade).includes(searchQuery);
+      const matchesOwners =
+        selectedOwners.length === 0 ||
+        selectedOwners.some((owner) => tradeMatchesOwner(trade, owner));
+
+      return matchesSearch && matchesOwners;
+    });
+  }, [selectedOwners, tradeQuery, trades.allTrades]);
+  const activeTradeLabel = selectedOwners.length ? selectedOwners.join(" + ") : "All Teams";
+
+  const toggleOwner = (owner: string) => {
+    setSelectedOwners((currentOwners) =>
+      currentOwners.includes(owner)
+        ? currentOwners.filter((currentOwner) => currentOwner !== owner)
+        : [...currentOwners, owner],
+    );
+  };
 
   useParallaxMotion();
 
   return (
-    <PageChrome active="trades" status="Trade archive">
+    <PageChrome active="trades" status="All trades">
       <section className="section-band route-section trades-band" id="trades">
         <div className="section-heading">
-          <p className="eyebrow">Trade archive</p>
+          <p className="eyebrow">All trades</p>
           <h2>All Trades</h2>
           <p>
-            A focused market wall for the full ledger, with recent moves and the
-            most active owners by total trades.
+            Every trade from the All Trades tab, searchable by player, pick,
+            owner, destination, or season.
           </p>
+        </div>
+        <div className="trade-controls">
+          <label className="trade-search">
+            <span>Search</span>
+            <input
+              aria-label="Search all trades"
+              onChange={(event) => setTradeQuery(event.target.value)}
+              placeholder="Player, pick, owner, season"
+              type="search"
+              value={tradeQuery}
+            />
+          </label>
+          <div className="owner-filter-bar" aria-label="Team filters">
+            <button
+              className={selectedOwners.length === 0 ? "active" : ""}
+              onClick={() => setSelectedOwners([])}
+              type="button"
+            >
+              All
+            </button>
+            {TRADE_OWNER_FILTERS.map((filter) => (
+              <button
+                aria-pressed={selectedOwners.includes(filter.owner)}
+                className={selectedOwners.includes(filter.owner) ? "active" : ""}
+                key={filter.owner}
+                onClick={() => toggleOwner(filter.owner)}
+                type="button"
+              >
+                {filter.owner}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="trade-layout">
           <article className="trade-feed">
             <div className="panel-title">
-              <span>{trades.totalTrades || "..."} total</span>
-              <h3>Latest logged moves</h3>
+              <span>{filteredTrades.length} of {trades.totalTrades || "..."} shown</span>
+              <h3>{activeTradeLabel}</h3>
             </div>
             <div className="trade-list">
-              {trades.latestTrades.map((trade, index) => (
+              {filteredTrades.map((trade, index) => (
                 <div className="trade-row" key={`${trade.time}-${trade.assets}-${index}`}>
                   <span>{trade.time}</span>
                   <strong>{trade.assets}</strong>
@@ -738,11 +846,14 @@ export function TradesPage() {
                 </div>
               ))}
             </div>
+            {!tradesSheet.loading && filteredTrades.length === 0 && (
+              <StatusMessage label="No trades found" detail="Try a different search or team filter." />
+            )}
           </article>
           <article className="trade-counts">
             <div className="panel-title">
               <span>Activity</span>
-              <h3>Owner totals</h3>
+              <h3>Owner Totals</h3>
             </div>
             <div className="bar-list">
               {trades.ownerCounts.slice(0, 10).map((entry) => {
@@ -945,13 +1056,14 @@ export function LeagueSite() {
       <div className="field-grid" aria-hidden="true" />
       <div className="page-shell">
         <header className="site-nav">
-          <a className="brand-mark" href="#top" aria-label="Shadynasty home">
-            <span>SD</span>
+          <a className="brand-logo" href="#top" aria-label="Shadynasty home">
+            <span className="logo-word">Shadynasty</span>
+            <span className="logo-rule" aria-hidden="true" />
           </a>
           <nav aria-label="Primary">
             <a href="#draft">Draft</a>
-            <a href="#results">Results</a>
-            <a href="#trades">Trades</a>
+            <a href="#results">League History</a>
+            <a href="#trades">All Trades</a>
             <a href="#teams">Teams</a>
           </nav>
           <div className="nav-status">
