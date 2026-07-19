@@ -194,6 +194,59 @@ button {
   white-space: nowrap;
 }
 
+.menu-toggle {
+  align-items: center;
+  background: rgba(7, 8, 6, 0.44);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  display: none;
+  gap: 4px;
+  height: 44px;
+  justify-content: center;
+  justify-self: end;
+  padding: 0;
+  transition: background 180ms ease, border-color 180ms ease;
+  width: 44px;
+}
+
+.menu-toggle:hover,
+.menu-toggle.is-open {
+  background: rgba(184, 255, 92, 0.12);
+  border-color: rgba(184, 255, 92, 0.46);
+}
+
+.menu-toggle span {
+  background: var(--foreground);
+  border-radius: 999px;
+  display: block;
+  grid-column: 1;
+  grid-row: 1;
+  height: 2px;
+  transition: opacity 180ms ease, transform 180ms ease;
+  width: 19px;
+}
+
+.menu-toggle span:nth-child(1) {
+  transform: translateY(-6px);
+}
+
+.menu-toggle span:nth-child(3) {
+  transform: translateY(6px);
+}
+
+.menu-toggle.is-open span:nth-child(1) {
+  transform: rotate(45deg);
+}
+
+.menu-toggle.is-open span:nth-child(2) {
+  opacity: 0;
+}
+
+.menu-toggle.is-open span:nth-child(3) {
+  transform: rotate(-45deg);
+}
+
 .pulse-dot {
   background: var(--lime);
   border-radius: 999px;
@@ -975,15 +1028,43 @@ button {
 
 @media (max-width: 820px) {
   .site-nav {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto auto;
   }
 
   .site-logo-image {
     height: 46px;
   }
 
+  .menu-toggle {
+    display: grid;
+  }
+
   .site-nav nav {
-    justify-content: end;
+    display: grid;
+    gap: 8px;
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transform: translateY(-6px);
+    transition: max-height 220ms ease, opacity 180ms ease, padding 180ms ease, transform 180ms ease;
+  }
+
+  .site-nav nav.is-open {
+    max-height: 320px;
+    opacity: 1;
+    padding-top: 4px;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .site-nav nav a {
+    align-items: center;
+    display: flex;
+    min-height: 44px;
   }
 
   .nav-status {

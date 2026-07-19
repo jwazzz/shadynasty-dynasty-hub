@@ -606,6 +606,8 @@ function PageChrome({
   children: ReactNode;
   status?: string;
 }) {
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
   return (
     <main className="dynasty-site">
       <div className="field-grid" aria-hidden="true" />
@@ -614,9 +616,30 @@ function PageChrome({
           <a className="brand-logo" href="/" aria-label="Shadynasty home">
             <img className="site-logo-image" src="/shadynasty-logo.png" alt="" />
           </a>
-          <nav aria-label="Primary">
+          <button
+            aria-controls="primary-navigation"
+            aria-expanded={mobileNavOpen}
+            aria-label={mobileNavOpen ? "Close navigation" : "Open navigation"}
+            className={`menu-toggle ${mobileNavOpen ? "is-open" : ""}`}
+            onClick={() => setMobileNavOpen((isOpen) => !isOpen)}
+            type="button"
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+          <nav
+            aria-label="Primary"
+            className={mobileNavOpen ? "is-open" : ""}
+            id="primary-navigation"
+          >
             {NAV_LINKS.map((link) => (
-              <a className={link.id === active ? "active" : ""} href={link.href} key={link.id}>
+              <a
+                className={link.id === active ? "active" : ""}
+                href={link.href}
+                key={link.id}
+                onClick={() => setMobileNavOpen(false)}
+              >
                 {link.label}
               </a>
             ))}
