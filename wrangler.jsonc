@@ -1,12 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "shadynasty-dynasty-hub",
-  "main": "./dist/server/index.js",
+  "pages_build_output_dir": "./dist/client",
   "compatibility_date": "2026-07-20",
-  "assets": {
-    "directory": "./dist/client"
-  },
-  "observability": {
-    "enabled": true
-  }
+  "compatibility_flags": ["nodejs_compat"]
 }
