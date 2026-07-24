@@ -634,11 +634,9 @@ function useParallaxMotion() {
 function PageChrome({
   active,
   children,
-  status,
 }: {
   active: (typeof NAV_LINKS)[number]["id"];
   children: ReactNode;
-  status?: string;
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -678,10 +676,6 @@ function PageChrome({
               </a>
             ))}
           </nav>
-          <div className="nav-status">
-            <span className="pulse-dot" />
-            {status ?? "League hub"}
-          </div>
         </header>
         {children}
       </div>
@@ -693,7 +687,7 @@ export function HomePage() {
   useParallaxMotion();
 
   return (
-    <PageChrome active="home" status="League hub">
+    <PageChrome active="home">
       <section className="hero-section route-hero home-hero" id="top">
         <div className="hero-copy">
           <h1 className="home-title">League Hub</h1>
@@ -742,7 +736,7 @@ export function DraftPage() {
   useParallaxMotion();
 
   return (
-    <PageChrome active="draft" status={`Draft sync ${formatFetchTime(draftSheet.fetchedAt)}`}>
+    <PageChrome active="draft">
       <section className="section-band route-section draft-band" id="draft">
         <div className="section-heading">
           <p className="eyebrow">Live from Google Sheets</p>
@@ -808,7 +802,7 @@ export function ResultsPage() {
   useParallaxMotion();
 
   return (
-    <PageChrome active="results" status="League history">
+    <PageChrome active="results">
       <section className="section-band route-section results-band" id="results">
         <div className="section-heading">
           <p className="eyebrow">League history</p>
@@ -916,7 +910,7 @@ export function TradesPage() {
   useParallaxMotion();
 
   return (
-    <PageChrome active="trades" status="All trades">
+    <PageChrome active="trades">
       <section className="section-band route-section trades-band" id="trades">
         <div className="section-heading">
           <p className="eyebrow">All trades</p>
@@ -1030,7 +1024,7 @@ export function TeamsPage() {
   useParallaxMotion();
 
   return (
-    <PageChrome active="teams" status={`${activeTeam.owner || activeTeamTab.owner} roster`}>
+    <PageChrome active="teams">
       <section className="section-band route-section teams-band" id="teams">
         <div className="section-heading">
           <p className="eyebrow">Roster rooms</p>
