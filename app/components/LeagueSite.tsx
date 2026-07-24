@@ -513,32 +513,49 @@ function parseTeam(rows: string[][], fallbackOwner: string): TeamSummary {
   const rosterColumn = rosterHeader.findIndex(
     (cell, index) => normalize(cell) === "Player" && normalize(rosterHeader[index + 1]) === "Pos",
   );
-  // The trades table (Year/Give) sits below the roster in the same sheet. Bound
-  // the roster to that boundary so listing every player never bleeds into it.
+  // Side tables (draft picks, then a Year/Give trades table) sit to the RIGHT
+  // of the roster in later columns, some starting partway down the roster rows.
+  // The trades boundary only bounds those right-hand columns, not the roster.
   const tradeHeaderIndex = rows.findIndex((row) =>
     row.some(
       (cell, index) => normalize(cell) === "Year" && normalize(row[index + 1]) === "Give",
     ),
   );
-  const rosterEndIndex =
+  const sideTableEndIndex =
     tradeHeaderIndex > rosterHeaderIndex ? tradeHeaderIndex : rows.length;
   const rosterRows =
-    rosterHeaderIndex >= 0 ? rows.slice(rosterHeaderIndex + 1, rosterEndIndex) : [];
+    rosterHeaderIndex >= 0 ? rows.slice(rosterHeaderIndex + 1, sideTableEndIndex) : [];
   const picks2026Column = rosterHeader.findIndex((cell) => normalize(cell) === "2026");
   const picks2027Column = rosterHeader.findIndex((cell) => normalize(cell) === "2027");
   const picks2025Column = rosterHeader.findIndex((cell) => normalize(cell) === "2025");
 
-  // Every player on the roster, in sheet order (no cap).
-  const roster = rosterRows
-    .map((row) => ({
-      player: normalize(row[rosterColumn]),
-      pos: normalize(row[rosterColumn + 1]),
-      nflTeam: normalize(row[rosterColumn + 2]),
-      points: normalize(row[rosterColumn + 3]),
-      age: normalize(row[rosterColumn + 4]),
-      rank: normalize(row[rosterColumn + 5]),
-    }))
-    .filter((player) => player.player && player.pos);
+  // The roster is the contiguous block of player rows below the header. Read it
+  // until the first blank Player row (which separates the current roster from
+  // the historical rosters further down), so every player is listed, no cap.
+  const roster: {
+    player: string;
+    pos: string;
+    nflTeam: string;
+    points: string;
+    age: string;
+    rank: string;
+  }[] = [];
+  if (rosterHeaderIndex >= 0) {
+    for (let index = rosterHeaderIndex + 1; index < rows.length; index += 1) {
+      const row = rows[index] ?? [];
+      const player = normalize(row[rosterColumn]);
+      const pos = normalize(row[rosterColumn + 1]);
+      if (!player || !pos) break;
+      roster.push({
+        player,
+        pos,
+        nflTeam: normalize(row[rosterColumn + 2]),
+        points: normalize(row[rosterColumn + 3]),
+        age: normalize(row[rosterColumn + 4]),
+        rank: normalize(row[rosterColumn + 5]),
+      });
+    }
+  }
 
   const positions = parsePositionCounts(rows);
 
