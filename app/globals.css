@@ -67,7 +67,6 @@ button {
   overflow: hidden;
   pointer-events: none;
   background:
-    linear-gradient(90deg, transparent 49.85%, rgba(247, 243, 232, 0.1) 49.85% 50.15%, transparent 50.15%),
     repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), rgba(247, 243, 232, 0.16) calc(10% - 1px) 10%),
     linear-gradient(0deg, transparent 13%, rgba(247, 243, 232, 0.18) 13% 13.35%, transparent 13.35% 86.65%, rgba(247, 243, 232, 0.18) 86.65% 87%, transparent 87%),
     repeating-linear-gradient(0deg, rgba(184, 255, 92, 0.035) 0 72px, rgba(4, 13, 7, 0.06) 72px 144px);
