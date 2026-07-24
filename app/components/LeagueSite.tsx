@@ -741,10 +741,6 @@ export function DraftPage() {
         <div className="section-heading">
           <p className="eyebrow">Live room</p>
           <h2>Draft</h2>
-          <p>
-            This page is focused only on the live draft. It refreshes while open
-            so picks update from the Sheet without a reload.
-          </p>
         </div>
         <div className="draft-status-bar">
           <div>
@@ -807,10 +803,6 @@ export function ResultsPage() {
         <div className="section-heading">
           <p className="eyebrow">Archive</p>
           <h2>League History</h2>
-          <p>
-            All-time records, the all-decade points race, and the 2025 league
-            standings from the League Results tab.
-          </p>
         </div>
         <div className="results-layout">
           <article className="leaderboard-panel">
@@ -915,10 +907,6 @@ export function TradesPage() {
         <div className="section-heading">
           <p className="eyebrow">Market</p>
           <h2>All Trades</h2>
-          <p>
-            Every full trade from the All Trades tab. Team buttons match the
-            Team column; multiple selected teams show only shared trades.
-          </p>
         </div>
         <div className="trade-controls">
           <label className="trade-search">
@@ -1029,10 +1017,6 @@ export function TeamsPage() {
         <div className="section-heading">
           <p className="eyebrow">Rosters</p>
           <h2>Teams</h2>
-          <p>
-            Craig, Danny, DJ, Eddie, Evan, Jeremy, Joe C, Joe F, Joe H, and
-            John in one owner switcher.
-          </p>
         </div>
 
         <div className="team-switcher" role="tablist" aria-label="Team tabs">
