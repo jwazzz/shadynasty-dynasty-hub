@@ -182,6 +182,40 @@ function useSheet(tabKey: string, intervalMs = 0) {
   return sheet;
 }
 
+function useAllTeamNames() {
+  const [names, setNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let active = true;
+
+    Promise.all(
+      TEAM_TABS.map(async (team) => {
+        try {
+          const response = await fetch(`/api/sheet?tab=${team.key}`, { cache: "no-store" });
+          if (!response.ok) {
+            return [team.key, ""] as const;
+          }
+
+          const payload = (await response.json()) as { rows: string[][] };
+          return [team.key, findValueAfterLabel(payload.rows, "Team Name")] as const;
+        } catch {
+          return [team.key, ""] as const;
+        }
+      }),
+    ).then((entries) => {
+      if (active) {
+        setNames(Object.fromEntries(entries.filter(([, name]) => name)));
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return names;
+}
+
 function normalize(value: string | undefined) {
   return (value ?? "").trim();
 }
@@ -987,6 +1021,7 @@ export function TeamsPage() {
   const [activeTeamKey, setActiveTeamKey] = useState("team-jeremy");
   const activeTeamTab = getOwnerTab(activeTeamKey);
   const activeTeamSheet = useSheet(activeTeamKey);
+  const teamNames = useAllTeamNames();
   const activeTeam = useMemo(
     () => parseTeam(activeTeamSheet.rows, activeTeamTab.owner),
     [activeTeamSheet.rows, activeTeamTab.owner],
@@ -1017,7 +1052,7 @@ export function TeamsPage() {
               type="button"
             >
               <span>{team.owner}</span>
-              <small>{team.alias}</small>
+              <small>{teamNames[team.key] || team.owner}</small>
             </button>
           ))}
         </div>
