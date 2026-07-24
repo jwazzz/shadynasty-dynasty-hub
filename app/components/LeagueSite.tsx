@@ -739,8 +739,8 @@ export function DraftPage() {
     <PageChrome active="draft">
       <section className="section-band route-section draft-band" id="draft">
         <div className="section-heading">
-          <p className="eyebrow">Live from Google Sheets</p>
-          <h2>2026 Draft Board</h2>
+          <p className="eyebrow">Live room</p>
+          <h2>Draft</h2>
           <p>
             This page is focused only on the live draft. It refreshes while open
             so picks update from the Sheet without a reload.
@@ -805,7 +805,7 @@ export function ResultsPage() {
     <PageChrome active="results">
       <section className="section-band route-section results-band" id="results">
         <div className="section-heading">
-          <p className="eyebrow">League history</p>
+          <p className="eyebrow">Archive</p>
           <h2>League History</h2>
           <p>
             All-time records, the all-decade points race, and the 2025 league
@@ -913,7 +913,7 @@ export function TradesPage() {
     <PageChrome active="trades">
       <section className="section-band route-section trades-band" id="trades">
         <div className="section-heading">
-          <p className="eyebrow">All trades</p>
+          <p className="eyebrow">Market</p>
           <h2>All Trades</h2>
           <p>
             Every full trade from the All Trades tab. Team buttons match the
@@ -1027,8 +1027,8 @@ export function TeamsPage() {
     <PageChrome active="teams">
       <section className="section-band route-section teams-band" id="teams">
         <div className="section-heading">
-          <p className="eyebrow">Roster rooms</p>
-          <h2>Team navigation</h2>
+          <p className="eyebrow">Rosters</p>
+          <h2>Teams</h2>
           <p>
             Craig, Danny, DJ, Eddie, Evan, Jeremy, Joe C, Joe F, Joe H, and
             John in one owner switcher.
