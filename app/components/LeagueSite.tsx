@@ -704,20 +704,20 @@ export function HomePage() {
             <strong>Draft</strong>
             <small>Auto-refreshing 2026 board.</small>
           </a>
-          <a className="hub-card" href="/results">
-            <span>Archive</span>
-            <strong>League History</strong>
-            <small>Season records and all-time leaders.</small>
+          <a className="hub-card" href="/teams">
+            <span>Rosters</span>
+            <strong>Teams</strong>
+            <small>Every current owner tab.</small>
           </a>
           <a className="hub-card" href="/trades">
             <span>Market</span>
             <strong>All Trades</strong>
             <small>Search the full ledger by team.</small>
           </a>
-          <a className="hub-card" href="/teams">
-            <span>Rosters</span>
-            <strong>Teams</strong>
-            <small>Every current owner tab.</small>
+          <a className="hub-card" href="/results">
+            <span>Archive</span>
+            <strong>League History</strong>
+            <small>Season records and all-time leaders.</small>
           </a>
         </div>
       </section>
