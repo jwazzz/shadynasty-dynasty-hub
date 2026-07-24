@@ -734,6 +734,38 @@ button {
   margin: 0;
 }
 
+.position-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.position-filter button {
+  background: rgba(7, 8, 6, 0.44);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+  min-height: 40px;
+  padding: 8px 14px;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.position-filter button:hover,
+.position-filter button.active {
+  background: rgba(184, 255, 92, 0.12);
+  border-color: rgba(184, 255, 92, 0.52);
+  color: var(--foreground);
+}
+
+.roster-empty {
+  color: var(--muted);
+  margin: 4px 2px;
+}
+
 .standings-table,
 .mini-list,
 .bar-list,

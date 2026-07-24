@@ -98,6 +98,8 @@ const TEAM_TABS = [
   { key: "team-john", owner: "John", alias: "John" },
 ] as const;
 
+const ROSTER_POSITIONS = ["All", "QB", "RB", "WR", "TE", "DEF", "K"] as const;
+
 const TRADE_OWNER_FILTERS = [
   { owner: "Craig", tokens: ["Craig"] },
   { owner: "Danny", tokens: ["Danny", "Dannys", "Turd Ferguson"] },
@@ -1031,6 +1033,14 @@ export function TeamsPage() {
     [activeTeamSheet.rows, activeTeamTab.owner],
   );
   const dashboardRef = useRef<HTMLDivElement>(null);
+  const [positionFilter, setPositionFilter] =
+    useState<(typeof ROSTER_POSITIONS)[number]>("All");
+  const filteredRoster =
+    positionFilter === "All"
+      ? activeTeam.roster
+      : activeTeam.roster.filter(
+          (player) => player.pos.toUpperCase() === positionFilter,
+        );
 
   useParallaxMotion();
 
@@ -1100,10 +1110,26 @@ export function TeamsPage() {
           <article className="roster-panel">
             <div className="panel-title">
               <span>Current roster</span>
-              <h3>All players</h3>
+            </div>
+            <div
+              className="position-filter"
+              role="tablist"
+              aria-label="Filter roster by position"
+            >
+              {ROSTER_POSITIONS.map((position) => (
+                <button
+                  aria-pressed={positionFilter === position}
+                  className={positionFilter === position ? "active" : ""}
+                  key={position}
+                  onClick={() => setPositionFilter(position)}
+                  type="button"
+                >
+                  {position}
+                </button>
+              ))}
             </div>
             <div className="roster-table">
-              {activeTeam.roster.map((player) => (
+              {filteredRoster.map((player) => (
                 <div className="roster-row" key={`${player.player}-${player.pos}`}>
                   <strong>{player.player}</strong>
                   <span>{player.pos}</span>
@@ -1112,6 +1138,9 @@ export function TeamsPage() {
                   <small>Age {player.age || "-"}</small>
                 </div>
               ))}
+              {filteredRoster.length === 0 && (
+                <p className="roster-empty">No {positionFilter} on this roster.</p>
+              )}
             </div>
           </article>
 
