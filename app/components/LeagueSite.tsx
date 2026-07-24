@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 type SheetState = {
   rows: string[][];
@@ -1008,8 +1008,20 @@ export function TeamsPage() {
     () => parseTeam(activeTeamSheet.rows, activeTeamTab.owner),
     [activeTeamSheet.rows, activeTeamTab.owner],
   );
+  const dashboardRef = useRef<HTMLDivElement>(null);
 
   useParallaxMotion();
+
+  const handleSelectTeam = (key: string) => {
+    setActiveTeamKey(key);
+    // On mobile the dashboard sits below the tab grid, so a tap looks like
+    // nothing happened. Scroll it into view past the list of team names.
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 820px)").matches) {
+      requestAnimationFrame(() => {
+        dashboardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  };
 
   return (
     <PageChrome active="teams">
@@ -1025,7 +1037,7 @@ export function TeamsPage() {
               aria-selected={team.key === activeTeamKey}
               className={team.key === activeTeamKey ? "active" : ""}
               key={team.key}
-              onClick={() => setActiveTeamKey(team.key)}
+              onClick={() => handleSelectTeam(team.key)}
               role="tab"
               type="button"
             >
@@ -1035,7 +1047,7 @@ export function TeamsPage() {
           ))}
         </div>
 
-        <div className="team-dashboard">
+        <div className="team-dashboard" ref={dashboardRef}>
           <article className="team-identity">
             <span className="team-updated">{activeTeam.updated || "Sheet sync"}</span>
             <h3>{activeTeam.teamName}</h3>
