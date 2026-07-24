@@ -513,11 +513,22 @@ function parseTeam(rows: string[][], fallbackOwner: string): TeamSummary {
   const rosterColumn = rosterHeader.findIndex(
     (cell, index) => normalize(cell) === "Player" && normalize(rosterHeader[index + 1]) === "Pos",
   );
-  const rosterRows = rosterHeaderIndex >= 0 ? rows.slice(rosterHeaderIndex + 1) : [];
+  // The trades table (Year/Give) sits below the roster in the same sheet. Bound
+  // the roster to that boundary so listing every player never bleeds into it.
+  const tradeHeaderIndex = rows.findIndex((row) =>
+    row.some(
+      (cell, index) => normalize(cell) === "Year" && normalize(row[index + 1]) === "Give",
+    ),
+  );
+  const rosterEndIndex =
+    tradeHeaderIndex > rosterHeaderIndex ? tradeHeaderIndex : rows.length;
+  const rosterRows =
+    rosterHeaderIndex >= 0 ? rows.slice(rosterHeaderIndex + 1, rosterEndIndex) : [];
   const picks2026Column = rosterHeader.findIndex((cell) => normalize(cell) === "2026");
   const picks2027Column = rosterHeader.findIndex((cell) => normalize(cell) === "2027");
   const picks2025Column = rosterHeader.findIndex((cell) => normalize(cell) === "2025");
 
+  // Every player on the roster, in sheet order (no cap).
   const roster = rosterRows
     .map((row) => ({
       player: normalize(row[rosterColumn]),
@@ -527,8 +538,7 @@ function parseTeam(rows: string[][], fallbackOwner: string): TeamSummary {
       age: normalize(row[rosterColumn + 4]),
       rank: normalize(row[rosterColumn + 5]),
     }))
-    .filter((player) => player.player && player.pos)
-    .slice(0, 16);
+    .filter((player) => player.player && player.pos);
 
   const positions = parsePositionCounts(rows);
 
@@ -550,11 +560,6 @@ function parseTeam(rows: string[][], fallbackOwner: string): TeamSummary {
         .slice(0, 6)
     : [];
 
-  const tradeHeaderIndex = rows.findIndex((row) =>
-    row.some(
-      (cell, index) => normalize(cell) === "Year" && normalize(row[index + 1]) === "Give",
-    ),
-  );
   const tradeColumn = rows[tradeHeaderIndex]?.findIndex(
     (cell, index) => normalize(cell) === "Year" && normalize(rows[tradeHeaderIndex]?.[index + 1]) === "Give",
   ) ?? -1;
@@ -1002,7 +1007,7 @@ export function TradesPage() {
 export function TeamsPage() {
   const [activeTeamKey, setActiveTeamKey] = useState("team-jeremy");
   const activeTeamTab = getOwnerTab(activeTeamKey);
-  const activeTeamSheet = useSheet(activeTeamKey);
+  const activeTeamSheet = useSheet(activeTeamKey, 30000);
   const teamNames = useAllTeamNames();
   const activeTeam = useMemo(
     () => parseTeam(activeTeamSheet.rows, activeTeamTab.owner),
@@ -1065,7 +1070,7 @@ export function TeamsPage() {
           <article className="roster-panel">
             <div className="panel-title">
               <span>Current roster</span>
-              <h3>Top players</h3>
+              <h3>All players</h3>
             </div>
             <div className="roster-table">
               {activeTeam.roster.map((player) => (
