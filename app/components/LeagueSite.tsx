@@ -1022,6 +1022,11 @@ export function TeamsPage() {
     // On mobile the dashboard sits below the tab grid, so a tap looks like
     // nothing happened. Scroll it into view past the list of team names.
     if (typeof window !== "undefined" && window.matchMedia("(max-width: 820px)").matches) {
+      // Blur the tapped tab first: a focused button keeps the browser
+      // scrolling it back into view, which fights the scroll below.
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
       requestAnimationFrame(() => {
         dashboardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
