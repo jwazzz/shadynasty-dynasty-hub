@@ -700,6 +700,7 @@ button {
 }
 
 .team-dashboard {
+  align-items: start;
   grid-template-columns: 300px minmax(0, 1.1fr) minmax(280px, 0.78fr);
   scroll-margin-top: 104px;
 }
