@@ -1028,7 +1028,15 @@ export function TeamsPage() {
         document.activeElement.blur();
       }
       requestAnimationFrame(() => {
-        dashboardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        const el = dashboardRef.current;
+        if (!el) return;
+        // Smooth scrolling is unreliable on this page (parallax transforms on
+        // ancestor elements), so force an instant jump to the dashboard.
+        const root = document.documentElement;
+        const previousBehavior = root.style.scrollBehavior;
+        root.style.scrollBehavior = "auto";
+        el.scrollIntoView({ block: "start" });
+        root.style.scrollBehavior = previousBehavior;
       });
     }
   };
