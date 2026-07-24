@@ -148,13 +148,13 @@ button {
 .brand-logo {
   align-items: center;
   display: inline-flex;
-  min-height: 54px;
+  min-height: 78px;
 }
 
 .site-logo-image {
   display: block;
   filter: drop-shadow(0 0 18px rgba(184, 255, 92, 0.22));
-  height: clamp(44px, 4.4vw, 62px);
+  height: clamp(64px, 6.5vw, 92px);
   object-fit: contain;
   width: auto;
 }
@@ -1032,7 +1032,7 @@ button {
   }
 
   .site-logo-image {
-    height: 46px;
+    height: 64px;
   }
 
   .menu-toggle {
@@ -1173,11 +1173,11 @@ button {
   }
 
   .brand-logo {
-    min-height: 40px;
+    min-height: 56px;
   }
 
   .site-logo-image {
-    height: 38px;
+    height: 54px;
   }
 
   .home-lede {
