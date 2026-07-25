@@ -810,6 +810,12 @@ button {
   color: var(--muted);
 }
 
+/* Age matches the other roster cells (name/pos/team/points). */
+.roster-row small {
+  color: var(--foreground);
+  font-size: 1rem;
+}
+
 .trade-row small {
   grid-column: 2;
 }
@@ -1153,10 +1159,12 @@ button {
   }
 
   .roster-row small {
+    color: var(--muted);
     display: block;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
     grid-column: 1;
     grid-row: 2;
-    font-size: 0.72rem;
   }
 
   .roster-row span:nth-of-type(1) {
