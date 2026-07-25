@@ -609,6 +609,39 @@ function parseTeam(rows: string[][], fallbackOwner: string): TeamSummary {
   };
 }
 
+type FreeAgent = {
+  player: string;
+  pos: string;
+  team: string;
+  points: string;
+};
+
+function parseFreeAgents(rows: string[][]): FreeAgent[] {
+  const headerIndex = rows.findIndex((row) =>
+    row.some(
+      (cell, index) => normalize(cell) === "Player" && normalize(row[index + 1]) === "Pos",
+    ),
+  );
+  if (headerIndex < 0) {
+    return [];
+  }
+  const header = rows[headerIndex];
+  const playerColumn = header.findIndex(
+    (cell, index) => normalize(cell) === "Player" && normalize(header[index + 1]) === "Pos",
+  );
+
+  return rows
+    .slice(headerIndex + 1)
+    .map((row) => ({
+      player: normalize(row[playerColumn]),
+      // Uppercase so filters match and stray spacing (e.g. "K ") is ignored.
+      pos: normalize(row[playerColumn + 1]).toUpperCase(),
+      team: normalize(row[playerColumn + 2]),
+      points: normalize(row[playerColumn + 3]),
+    }))
+    .filter((agent) => agent.player && agent.pos);
+}
+
 function groupDraftByRound(picks: DraftPick[]) {
   return picks.reduce<Record<string, DraftPick[]>>((groups, pick) => {
     groups[pick.round] ??= [];
@@ -627,6 +660,7 @@ const NAV_LINKS = [
   { href: "/results", label: "League History", id: "results" },
   { href: "/trades", label: "All Trades", id: "trades" },
   { href: "/teams", label: "Teams", id: "teams" },
+  { href: "/free-agents", label: "Free Agents", id: "free-agents" },
 ] as const;
 
 function useParallaxMotion() {
@@ -732,6 +766,11 @@ export function HomePage() {
             <span>Rosters</span>
             <strong>Teams</strong>
             <small>Every current owner tab.</small>
+          </a>
+          <a className="hub-card" href="/free-agents">
+            <span>Free agency</span>
+            <strong>Free Agents</strong>
+            <small>Search the 2025 available pool.</small>
           </a>
           <a className="hub-card" href="/trades">
             <span>Market</span>
@@ -1192,6 +1231,132 @@ export function TeamsPage() {
         </div>
         {activeTeamSheet.error && (
           <StatusMessage label={`${activeTeamTab.owner} feed unavailable`} detail={activeTeamSheet.error} />
+        )}
+      </section>
+    </PageChrome>
+  );
+}
+
+export function FreeAgentsPage() {
+  const freeAgentsSheet = useSheet("free-agents", 30000);
+  const freeAgents = useMemo(
+    () => parseFreeAgents(freeAgentsSheet.rows),
+    [freeAgentsSheet.rows],
+  );
+
+  const [query, setQuery] = useState("");
+  const [positionFilter, setPositionFilter] =
+    useState<(typeof ROSTER_POSITIONS)[number]>("All");
+  const [sortKey, setSortKey] = useState<"player" | "pos" | "team" | "points">("points");
+  const [sortAscending, setSortAscending] = useState(false);
+
+  useParallaxMotion();
+
+  const visibleAgents = useMemo(() => {
+    const search = normalizeSearch(query);
+    const filtered = freeAgents.filter((agent) => {
+      const matchesPosition = positionFilter === "All" || agent.pos === positionFilter;
+      const matchesSearch =
+        !search ||
+        normalizeSearch(`${agent.player} ${agent.team} ${agent.pos}`).includes(search);
+      return matchesPosition && matchesSearch;
+    });
+
+    return [...filtered].sort((a, b) => {
+      const comparison =
+        sortKey === "points"
+          ? parseNumber(a.points) - parseNumber(b.points)
+          : a[sortKey].localeCompare(b[sortKey]);
+      return sortAscending ? comparison : -comparison;
+    });
+  }, [freeAgents, query, positionFilter, sortKey, sortAscending]);
+
+  const toggleSort = (key: typeof sortKey) => {
+    if (sortKey === key) {
+      setSortAscending((current) => !current);
+      return;
+    }
+    setSortKey(key);
+    // Points default high to low; text columns default A to Z.
+    setSortAscending(key !== "points");
+  };
+
+  const sortIndicator = (key: typeof sortKey) =>
+    sortKey === key ? (sortAscending ? " ▲" : " ▼") : "";
+
+  return (
+    <PageChrome active="free-agents">
+      <section className="section-band route-section free-agents-band" id="free-agents">
+        <div className="section-heading">
+          <p className="eyebrow">Free agency</p>
+          <h2>2025 Free Agents</h2>
+        </div>
+
+        <div className="fa-controls">
+          <label className="trade-search">
+            <span>Search</span>
+            <input
+              aria-label="Search free agents"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Player or team"
+              type="search"
+              value={query}
+            />
+          </label>
+          <div
+            className="position-filter"
+            role="tablist"
+            aria-label="Filter free agents by position"
+          >
+            {ROSTER_POSITIONS.map((position) => (
+              <button
+                aria-pressed={positionFilter === position}
+                className={positionFilter === position ? "active" : ""}
+                key={position}
+                onClick={() => setPositionFilter(position)}
+                type="button"
+              >
+                {position}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <article className="fa-panel">
+          <div className="panel-title">
+            <span>{visibleAgents.length} shown</span>
+            <h3>Available players</h3>
+          </div>
+          <div className="fa-table">
+            <div className="fa-head">
+              <button onClick={() => toggleSort("player")} type="button">
+                Player{sortIndicator("player")}
+              </button>
+              <button onClick={() => toggleSort("pos")} type="button">
+                Pos{sortIndicator("pos")}
+              </button>
+              <button onClick={() => toggleSort("team")} type="button">
+                Team{sortIndicator("team")}
+              </button>
+              <button onClick={() => toggleSort("points")} type="button">
+                Pts{sortIndicator("points")}
+              </button>
+            </div>
+            {visibleAgents.map((agent) => (
+              <div className="fa-row" key={`${agent.player}-${agent.pos}-${agent.team}`}>
+                <strong>{agent.player}</strong>
+                <span>{agent.pos}</span>
+                <span>{agent.team}</span>
+                <span>{agent.points || "-"}</span>
+              </div>
+            ))}
+            {visibleAgents.length === 0 && (
+              <p className="roster-empty">No free agents match.</p>
+            )}
+          </div>
+        </article>
+        {freeAgentsSheet.error && (
+          <StatusMessage label="Free agents feed unavailable" detail={freeAgentsSheet.error} />
         )}
       </section>
     </PageChrome>

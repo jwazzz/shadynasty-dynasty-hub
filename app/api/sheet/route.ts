@@ -7,6 +7,7 @@ const SHEET_TABS = {
   draft: { title: "2026 Draft", gid: "138922991" },
   results: { title: "League Results", gid: "714171874" },
   trades: { title: "All Trades", gid: "1880006300" },
+  "free-agents": { title: "2025 Free Agents", gid: "297281140" },
   "team-craig": { title: "Craig", gid: "1145997661" },
   "team-danny": { title: "Danny", gid: "364688444" },
   "team-dj": { title: "DJ", gid: "1391042481" },
