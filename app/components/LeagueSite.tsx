@@ -307,6 +307,11 @@ function getDraftPickKey(pick: DraftPick) {
   return `${pick.round}-${pick.pick}-${pick.team}`;
 }
 
+// The owning team of a pick, without trade notes like "DJ (f/ Craig)".
+function draftPickTeam(team: string) {
+  return team.split("(")[0].trim();
+}
+
 function getCurrentDraftPickKey(picks: DraftPick[]) {
   const currentPick = picks.find((pick) => !pick.selection);
 
@@ -758,9 +763,9 @@ export function HomePage() {
       <section className="section-band hub-band">
         <div className="hub-grid">
           <a className="hub-card" href="/draft">
-            <span>Live room</span>
+            <span>Draft board</span>
             <strong>Draft</strong>
-            <small>Auto-refreshing 2026 board.</small>
+            <small>The final 2026 draft board.</small>
           </a>
           <a className="hub-card" href="/teams">
             <span>Rosters</span>
@@ -789,12 +794,33 @@ export function HomePage() {
 }
 
 export function DraftPage() {
-  const draftSheet = useSheet("draft", 10000);
+  // Draft is locked/final, so fetch once instead of polling live.
+  const draftSheet = useSheet("draft");
   const draftPicks = useMemo(() => parseDraft(draftSheet.rows), [draftSheet.rows]);
-  const draftGroups = useMemo(() => groupDraftByRound(draftPicks), [draftPicks]);
-  const openPicks = draftPicks.filter((pick) => !pick.selection).length;
-  const selectedPicks = draftPicks.length - openPicks;
-  const currentDraftPickKey = getCurrentDraftPickKey(draftPicks);
+  const draftTeams = useMemo(() => {
+    const seen: string[] = [];
+    draftPicks.forEach((pick) => {
+      const team = draftPickTeam(pick.team);
+      if (team && !seen.includes(team)) {
+        seen.push(team);
+      }
+    });
+    return seen.sort((a, b) => a.localeCompare(b));
+  }, [draftPicks]);
+  const roundCount = useMemo(
+    () => Object.keys(groupDraftByRound(draftPicks)).length,
+    [draftPicks],
+  );
+
+  const [teamFilter, setTeamFilter] = useState("All");
+  const visiblePicks = useMemo(
+    () =>
+      teamFilter === "All"
+        ? draftPicks
+        : draftPicks.filter((pick) => draftPickTeam(pick.team) === teamFilter),
+    [draftPicks, teamFilter],
+  );
+  const draftGroups = useMemo(() => groupDraftByRound(visiblePicks), [visiblePicks]);
 
   useParallaxMotion();
 
@@ -802,26 +828,51 @@ export function DraftPage() {
     <PageChrome active="draft">
       <section className="section-band route-section draft-band" id="draft">
         <div className="section-heading">
-          <p className="eyebrow">Live room</p>
+          <p className="eyebrow">Draft board</p>
           <h2>Draft</h2>
         </div>
         <div className="draft-status-bar">
           <div>
-            <span>Last sync</span>
-            <strong>{formatFetchTime(draftSheet.fetchedAt)}</strong>
+            <span>Status</span>
+            <strong>Final</strong>
           </div>
           <div>
-            <span>Picks loaded</span>
+            <span>Picks</span>
             <strong>{draftPicks.length || "..."}</strong>
           </div>
           <div>
-            <span>Selections made</span>
-            <strong>{selectedPicks}</strong>
+            <span>Rounds</span>
+            <strong>{roundCount || "..."}</strong>
           </div>
           <div>
-            <span>Open slots</span>
-            <strong>{openPicks}</strong>
+            <span>Teams</span>
+            <strong>{draftTeams.length || "..."}</strong>
           </div>
+        </div>
+        <div
+          className="position-filter"
+          role="tablist"
+          aria-label="Filter draft by team"
+        >
+          <button
+            aria-pressed={teamFilter === "All"}
+            className={teamFilter === "All" ? "active" : ""}
+            onClick={() => setTeamFilter("All")}
+            type="button"
+          >
+            All
+          </button>
+          {draftTeams.map((team) => (
+            <button
+              aria-pressed={teamFilter === team}
+              className={teamFilter === team ? "active" : ""}
+              key={team}
+              onClick={() => setTeamFilter(team)}
+              type="button"
+            >
+              {team}
+            </button>
+          ))}
         </div>
         {draftSheet.error ? (
           <StatusMessage label="Draft feed unavailable" detail={draftSheet.error} />
@@ -832,13 +883,10 @@ export function DraftPage() {
                 <h3>{round}</h3>
                 <div className="pick-list">
                   {picks.map((pick) => (
-                    <div
-                      className={`pick-row ${getDraftPickClass(pick, currentDraftPickKey)}`}
-                      key={getDraftPickKey(pick)}
-                    >
+                    <div className="pick-row is-selected" key={getDraftPickKey(pick)}>
                       <span className="pick-number">{pick.pick}</span>
                       <strong>{pick.team}</strong>
-                      <span>{getDraftPickStatus(pick, currentDraftPickKey)}</span>
+                      <span>{pick.selection || "TBD"}</span>
                     </div>
                   ))}
                 </div>
@@ -846,6 +894,9 @@ export function DraftPage() {
             ))}
             {draftSheet.loading && !draftPicks.length && (
               <StatusMessage label="Loading draft board" detail="Pulling the 2026 Draft tab." />
+            )}
+            {!draftSheet.loading && visiblePicks.length === 0 && (
+              <p className="roster-empty">No picks for {teamFilter}.</p>
             )}
           </div>
         )}
@@ -857,6 +908,9 @@ export function DraftPage() {
 export function ResultsPage() {
   const resultsSheet = useSheet("results");
   const results = useMemo(() => parseResults(resultsSheet.rows), [resultsSheet.rows]);
+  const [selectedYear, setSelectedYear] = useState("");
+  const activeSeason =
+    results.seasons.find((season) => season.year === selectedYear) ?? results.latestSeason;
 
   useParallaxMotion();
 
@@ -907,11 +961,28 @@ export function ResultsPage() {
           </article>
           <article className="standings-panel">
             <div className="panel-title">
-              <span>{results.latestSeason?.year ?? "2025"}</span>
-              <h3>2025 League Standings</h3>
+              <span>Season</span>
+              <h3>{activeSeason?.year ?? ""} League Standings</h3>
+            </div>
+            <div
+              className="year-filter"
+              role="tablist"
+              aria-label="Choose a season"
+            >
+              {results.seasons.map((season) => (
+                <button
+                  aria-pressed={activeSeason?.year === season.year}
+                  className={activeSeason?.year === season.year ? "active" : ""}
+                  key={season.year}
+                  onClick={() => setSelectedYear(season.year)}
+                  type="button"
+                >
+                  {season.year}
+                </button>
+              ))}
             </div>
             <div className="standings-table">
-              {(results.latestSeason?.standings ?? []).map((standing) => (
+              {(activeSeason?.standings ?? []).map((standing) => (
                 <div className="standing-row" key={`${standing.place}-${standing.team}`}>
                   <span>{standing.place}</span>
                   <strong>{standing.team}</strong>

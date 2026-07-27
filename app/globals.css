@@ -766,6 +766,34 @@ button {
   margin: 4px 2px;
 }
 
+.year-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.year-filter button {
+  background: rgba(7, 8, 6, 0.44);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  min-height: 36px;
+  padding: 6px 10px;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.year-filter button:hover,
+.year-filter button.active {
+  background: rgba(184, 255, 92, 0.12);
+  border-color: rgba(184, 255, 92, 0.52);
+  color: var(--foreground);
+}
+
 /* Free agents page */
 .fa-controls {
   display: grid;
