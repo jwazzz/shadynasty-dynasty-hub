@@ -291,6 +291,11 @@ button {
   max-width: 620px;
 }
 
+.home-hero-countdown {
+  margin-top: 28px;
+  max-width: 760px;
+}
+
 .route-section {
   min-height: calc(100vh - 96px);
   padding-top: clamp(56px, 7vw, 92px);
@@ -548,7 +553,7 @@ button {
 }
 
 .home-dashboard {
-  grid-template-columns: minmax(320px, 0.64fr) minmax(0, 1.36fr);
+  grid-template-columns: minmax(0, 1fr);
   padding-bottom: clamp(60px, 8vw, 96px);
 }
 
@@ -1831,7 +1836,10 @@ button {
     grid-template-columns: 1fr;
   }
 
-  .countdown-grid,
+  .countdown-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .cut-grid {
     grid-template-columns: 1fr;
   }

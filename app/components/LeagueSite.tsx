@@ -1028,6 +1028,9 @@ export function HomePage() {
             Everything you ever need to know is just below.
           </p>
         </div>
+        <div className="home-hero-countdown">
+          <CountdownCard compact />
+        </div>
       </section>
 
       <section className="section-band hub-band">
@@ -1065,8 +1068,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="home-dashboard" aria-label="League countdown and cuts">
-        <CountdownCard />
+      <section className="home-dashboard" aria-label="League cuts">
         <CutTracker players={rosterPlayers} />
       </section>
     </PageChrome>
