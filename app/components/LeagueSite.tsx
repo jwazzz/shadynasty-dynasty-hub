@@ -282,6 +282,22 @@ function parseNumber(value: string | undefined) {
   return Number((value ?? "").replace(/,/g, "")) || 0;
 }
 
+function formatRosterValue(value: string | undefined) {
+  const clean = normalize(value);
+
+  if (!clean) {
+    return "";
+  }
+
+  const normalizedNumber = clean.replace(/,/g, "");
+
+  if (/^-?\d+(\.\d+)?$/.test(normalizedNumber)) {
+    return String(Number(normalizedNumber));
+  }
+
+  return clean;
+}
+
 function normalizeSearch(value: string | undefined) {
   return normalize(value)
     .toLowerCase()
@@ -1353,26 +1369,35 @@ export function RostersPage() {
               ))}
             </div>
             <div className="roster-table all-roster-table">
-              {filteredPlayers.map((player) => (
-                <div
-                  className={`roster-row all-roster-row ${player.isRookie ? "is-rookie" : ""}`}
-                  key={`${player.rowIndex}-${player.owner}-${player.player}`}
-                >
-                  <strong>
-                    {player.player}
-                    {player.isRookie && <em>Rookie</em>}
-                  </strong>
-                  <span>{player.pos}</span>
-                  <span>{player.nflTeam || "-"}</span>
-                  <span>{player.rank ? `#${player.rank}` : "-"}</span>
-                  <small className="all-roster-meta">
-                    <b>{player.owner}</b>
-                    <span>Age {player.age || "-"}</span>
-                    <span>ADP {player.adp || "-"}</span>
-                    <span>Pts {player.points || "-"}</span>
-                  </small>
-                </div>
-              ))}
+              {filteredPlayers.map((player) => {
+                const age = formatRosterValue(player.age);
+                const adp = formatRosterValue(player.adp);
+                const points = formatRosterValue(player.points);
+                const rank = formatRosterValue(player.rank);
+
+                return (
+                  <div
+                    className={`roster-row all-roster-row ${player.isRookie ? "is-rookie" : ""}`}
+                    key={`${player.rowIndex}-${player.owner}-${player.player}`}
+                  >
+                    <strong>
+                      {player.player}
+                      {player.isRookie && <em>Rookie</em>}
+                    </strong>
+                    <span>{player.pos}</span>
+                    <span>{player.nflTeam || "-"}</span>
+                    <span>{rank ? `#${rank}` : "-"}</span>
+                    <small className="all-roster-meta">
+                      {selectedOwner === "All" && (
+                        <span className="all-roster-owner">{player.owner}</span>
+                      )}
+                      <span>Age {age || "-"}</span>
+                      <span>ADP {adp || "-"}</span>
+                      <span>Pts {points || "-"}</span>
+                    </small>
+                  </div>
+                );
+              })}
             </div>
             {!rosterSheet.loading && filteredPlayers.length === 0 && (
               <StatusMessage label="No players found" detail="Try another owner, position, or search." />
