@@ -1275,7 +1275,7 @@ export function RostersPage() {
       return matchesQuery && matchesOwner && matchesPosition && matchesRookie;
     });
 
-    return selectedOwner === "All" ? filtered.slice().sort(compareRosterByAdp) : filtered;
+    return filtered.slice().sort(compareRosterByAdp);
   }, [players, rookiesOnly, rosterQuery, selectedOwner, selectedPosition]);
   const rookieCount = players.filter((player) => player.isRookie).length;
   const averageAge = players.length
