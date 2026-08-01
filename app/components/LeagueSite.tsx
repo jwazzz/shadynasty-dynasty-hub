@@ -298,6 +298,28 @@ function formatRosterValue(value: string | undefined) {
   return clean;
 }
 
+function getPositiveSortValue(value: string | undefined) {
+  const number = parseNumber(value);
+
+  return number > 0 ? number : Number.POSITIVE_INFINITY;
+}
+
+function compareRosterByAdp(a: AllRosterPlayer, b: AllRosterPlayer) {
+  const adpDifference = getPositiveSortValue(a.adp) - getPositiveSortValue(b.adp);
+
+  if (adpDifference !== 0) {
+    return adpDifference;
+  }
+
+  const rankDifference = getPositiveSortValue(a.rank) - getPositiveSortValue(b.rank);
+
+  if (rankDifference !== 0) {
+    return rankDifference;
+  }
+
+  return a.player.localeCompare(b.player);
+}
+
 function normalizeSearch(value: string | undefined) {
   return normalize(value)
     .toLowerCase()
@@ -766,18 +788,26 @@ function parseAllRosterRows(rows: string[][], rookieRows: number[]): AllRosterPl
   const rookieRowSet = new Set(rookieRows);
 
   return rows
-    .map((row, rowIndex) => ({
-      owner: canonicalOwner(row[0]),
-      player: normalize(row[1]),
-      pos: normalize(row[2]),
-      nflTeam: normalize(row[3]),
-      points: normalize(row[4]),
-      age: normalize(row[5]),
-      rank: normalize(row[6]),
-      adp: normalize(row[7]),
-      rowIndex,
-      isRookie: rookieRowSet.has(rowIndex),
-    }))
+    .map((row, rowIndex) => {
+      const pos = normalize(row[2]).toUpperCase();
+      const rawAge = normalize(row[5]);
+      const rawRank = normalize(row[6]);
+      const rawAdp = normalize(row[7]);
+      const defenseAdpOnly = pos === "DEF" && rawAge && rawAge !== "-" && !rawRank && !rawAdp;
+
+      return {
+        owner: canonicalOwner(row[0]),
+        player: normalize(row[1]),
+        pos,
+        nflTeam: normalize(row[3]),
+        points: normalize(row[4]),
+        age: pos === "DEF" ? "-" : rawAge,
+        rank: rawRank,
+        adp: defenseAdpOnly ? rawAge : rawAdp,
+        rowIndex,
+        isRookie: rookieRowSet.has(rowIndex),
+      };
+    })
     .filter((player) => player.rowIndex > 1 && player.owner && player.player && player.pos);
 }
 
@@ -1227,7 +1257,7 @@ export function RostersPage() {
   const filteredPlayers = useMemo(() => {
     const query = normalizeSearch(rosterQuery);
 
-    return players.filter((player) => {
+    const filtered = players.filter((player) => {
       const searchable = [
         player.owner,
         player.player,
@@ -1244,6 +1274,8 @@ export function RostersPage() {
 
       return matchesQuery && matchesOwner && matchesPosition && matchesRookie;
     });
+
+    return selectedOwner === "All" ? filtered.slice().sort(compareRosterByAdp) : filtered;
   }, [players, rookiesOnly, rosterQuery, selectedOwner, selectedPosition]);
   const rookieCount = players.filter((player) => player.isRookie).length;
   const averageAge = players.length
