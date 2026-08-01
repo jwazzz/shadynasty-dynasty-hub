@@ -1314,6 +1314,12 @@ export function RostersPage() {
           </label>
         </div>
 
+        <nav className="roster-jump-nav" aria-label="All rosters sections">
+          <a href="#all-roster-list">Players</a>
+          <a href="#position-strength">Position Strength</a>
+          <a href="#age-depth">Age & Depth</a>
+        </nav>
+
         <div className="team-switcher all-roster-owner-tabs" role="tablist" aria-label="Owner filters">
           <button
             aria-selected={selectedOwner === "All"}
@@ -1346,7 +1352,7 @@ export function RostersPage() {
         </div>
 
         <div className="roster-board-layout">
-          <article className="all-roster-panel">
+          <article className="all-roster-panel" id="all-roster-list">
             <div className="panel-title">
               <span>{filteredPlayers.length} shown</span>
               <h3>{selectedOwner === "All" ? "All Players" : `${selectedOwner} Roster`}</h3>
@@ -1388,9 +1394,6 @@ export function RostersPage() {
                     <span>{player.nflTeam || "-"}</span>
                     <span>{rank ? `#${rank}` : "-"}</span>
                     <small className="all-roster-meta">
-                      {selectedOwner === "All" && (
-                        <span className="all-roster-owner">{player.owner}</span>
-                      )}
                       <span>Age {age || "-"}</span>
                       <span>ADP {adp || "-"}</span>
                       <span>Pts {points || "-"}</span>
@@ -1405,7 +1408,7 @@ export function RostersPage() {
           </article>
 
           <aside className="roster-side-panels">
-            <article className="ranking-panel">
+            <article className="ranking-panel" id="position-strength">
               <div className="panel-title">
                 <span>Sheet ranks</span>
                 <h3>Position Strength</h3>
@@ -1423,7 +1426,7 @@ export function RostersPage() {
               </div>
             </article>
 
-            <article className="ranking-panel">
+            <article className="ranking-panel" id="age-depth">
               <div className="panel-title">
                 <span>Owner snapshot</span>
                 <h3>Age and Depth</h3>

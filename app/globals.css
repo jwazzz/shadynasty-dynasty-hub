@@ -923,6 +923,36 @@ button {
   min-height: 70px;
 }
 
+.roster-jump-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.roster-jump-nav a {
+  align-items: center;
+  background: rgba(7, 8, 6, 0.44);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 42px;
+  padding: 9px 13px;
+  text-decoration: none;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.roster-jump-nav a:hover {
+  background: rgba(184, 255, 92, 0.12);
+  border-color: rgba(184, 255, 92, 0.52);
+  color: var(--foreground);
+  transform: translateY(-2px);
+}
+
 .roster-filter-group {
   background: rgba(7, 8, 6, 0.32);
   border: 1px solid rgba(247, 243, 232, 0.1);
@@ -1006,6 +1036,12 @@ button {
 .roster-board-layout {
   align-items: start;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 0.36fr);
+}
+
+#all-roster-list,
+#position-strength,
+#age-depth {
+  scroll-margin-top: 96px;
 }
 
 .team-switcher.all-roster-owner-tabs {
@@ -1102,11 +1138,6 @@ button {
 .all-roster-meta span {
   color: var(--muted);
   white-space: nowrap;
-}
-
-.all-roster-meta .all-roster-owner {
-  color: var(--foreground);
-  font-weight: 800;
 }
 
 .roster-side-panels {
@@ -1954,6 +1985,10 @@ button {
 
   .roster-filter-group {
     padding: 10px;
+  }
+
+  .roster-jump-nav a {
+    flex: 1 1 132px;
   }
 
   .roster-owner-filter button {
