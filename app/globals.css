@@ -496,7 +496,7 @@ button {
 .hub-grid {
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
 }
 
 .hub-card {
@@ -540,6 +540,176 @@ button {
   line-height: 1.4;
 }
 
+.home-dashboard,
+.roster-hero-grid,
+.roster-board-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.home-dashboard {
+  grid-template-columns: minmax(320px, 0.64fr) minmax(0, 1.36fr);
+  padding-bottom: clamp(60px, 8vw, 96px);
+}
+
+.roster-hero-grid {
+  align-items: end;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.38fr);
+}
+
+.countdown-card {
+  background:
+    linear-gradient(145deg, rgba(35, 59, 110, 0.82), rgba(18, 20, 16, 0.86)),
+    repeating-linear-gradient(135deg, rgba(255, 200, 87, 0.08) 0 1px, transparent 1px 18px);
+}
+
+.countdown-card.is-compact {
+  align-self: stretch;
+}
+
+.countdown-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.countdown-grid div {
+  background: rgba(7, 8, 6, 0.4);
+  border: 1px solid rgba(247, 243, 232, 0.12);
+  border-radius: 8px;
+  min-width: 0;
+  padding: 12px 8px;
+  text-align: center;
+}
+
+.countdown-grid strong {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: clamp(1.45rem, 3vw, 2.15rem);
+  line-height: 1;
+}
+
+.countdown-grid span,
+.countdown-card p {
+  color: var(--muted);
+}
+
+.countdown-grid span {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  margin-top: 8px;
+  text-transform: uppercase;
+}
+
+.countdown-card p {
+  margin: 14px 0 0;
+}
+
+.cut-tracker {
+  display: grid;
+  gap: 16px;
+  margin: 18px 0 22px;
+}
+
+.cut-header {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.cut-header h3 {
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  line-height: 1;
+  margin: 0;
+}
+
+.cut-clock,
+.cut-total {
+  background: rgba(7, 8, 6, 0.35);
+  border: 1px solid rgba(247, 243, 232, 0.1);
+  border-radius: 8px;
+  min-width: 98px;
+  padding: 12px;
+  text-align: center;
+}
+
+.cut-clock span,
+.cut-total span {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 1.85rem;
+  line-height: 1;
+}
+
+.cut-clock small,
+.cut-total small {
+  color: var(--muted);
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  margin-top: 6px;
+  text-transform: uppercase;
+}
+
+.cut-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.cut-card {
+  background: rgba(7, 8, 6, 0.35);
+  border: 1px solid rgba(247, 243, 232, 0.1);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  min-height: 122px;
+  padding: 13px;
+}
+
+.cut-card.is-critical {
+  background:
+    linear-gradient(145deg, rgba(255, 107, 53, 0.18), rgba(7, 8, 6, 0.34));
+  border-color: rgba(255, 107, 53, 0.4);
+}
+
+.cut-card div:first-child {
+  align-items: start;
+  display: flex;
+  justify-content: space-between;
+}
+
+.cut-card span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.cut-card strong {
+  color: var(--foreground);
+  font-size: 2.15rem;
+  line-height: 0.95;
+}
+
+.cut-card small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.cut-meter {
+  background: rgba(247, 243, 232, 0.09);
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.cut-meter span {
+  background: linear-gradient(90deg, var(--gold), var(--ember));
+  display: block;
+  height: 100%;
+}
+
 .section-heading {
   margin-bottom: 28px;
 }
@@ -552,11 +722,15 @@ button {
 }
 
 .draft-status-bar > div,
+.countdown-card,
+.cut-tracker,
 .team-identity,
 .standings-panel,
 .leaderboard-panel,
 .trade-feed,
 .trade-counts,
+.all-roster-panel,
+.ranking-panel,
 .roster-panel,
 .picks-panel,
 .team-trades-panel,
@@ -698,6 +872,202 @@ button {
   transform: translateY(-2px);
 }
 
+.roster-command-band {
+  padding-bottom: clamp(72px, 9vw, 118px);
+}
+
+.roster-stat-strip {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 22px 0 16px;
+}
+
+.roster-stat-strip > div {
+  background: rgba(7, 8, 6, 0.4);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.roster-stat-strip span,
+.roster-select span,
+.rookie-toggle span {
+  color: var(--muted);
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.roster-stat-strip strong {
+  display: block;
+  font-size: clamp(1.45rem, 2.3vw, 2.15rem);
+  margin-top: 7px;
+}
+
+.roster-controls {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(260px, 1fr) minmax(150px, 0.26fr) minmax(150px, 0.26fr) auto;
+  margin-bottom: 16px;
+}
+
+.roster-search {
+  min-height: 70px;
+}
+
+.roster-select,
+.rookie-toggle {
+  background: rgba(7, 8, 6, 0.44);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  min-height: 70px;
+  padding: 12px;
+}
+
+.roster-select select {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--foreground);
+  font: inherit;
+  min-width: 0;
+  outline: 0;
+}
+
+.roster-select option {
+  background: #10140e;
+  color: var(--foreground);
+}
+
+.rookie-toggle {
+  align-items: center;
+  cursor: pointer;
+  grid-template-columns: auto auto;
+  justify-content: center;
+  min-width: 112px;
+}
+
+.rookie-toggle input {
+  accent-color: var(--lime);
+  height: 18px;
+  width: 18px;
+}
+
+.roster-board-layout {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.36fr);
+}
+
+.all-roster-table,
+.ranking-list,
+.owner-summary-list {
+  display: grid;
+  gap: 8px;
+}
+
+.all-roster-table {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.all-roster-header,
+.all-roster-row {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 92px minmax(190px, 1.25fr) 50px 58px 84px 58px 64px 64px;
+  min-width: 830px;
+  padding: 10px 12px;
+}
+
+.all-roster-header {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.all-roster-row,
+.ranking-row,
+.owner-summary-row {
+  background: rgba(7, 8, 6, 0.35);
+  border: 1px solid rgba(247, 243, 232, 0.09);
+  border-radius: 8px;
+}
+
+.all-roster-row.is-rookie,
+.roster-row.is-rookie {
+  background:
+    linear-gradient(90deg, rgba(207, 226, 243, 0.16), rgba(7, 8, 6, 0.34));
+  border-color: rgba(207, 226, 243, 0.44);
+}
+
+.all-roster-row strong,
+.roster-row strong {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 0;
+}
+
+.all-roster-row em,
+.roster-row em {
+  background: rgba(207, 226, 243, 0.18);
+  border: 1px solid rgba(207, 226, 243, 0.5);
+  border-radius: 999px;
+  color: #dff0ff;
+  font-size: 0.66rem;
+  font-style: normal;
+  font-weight: 900;
+  padding: 3px 6px;
+  text-transform: uppercase;
+}
+
+.all-roster-row span {
+  color: var(--muted);
+  min-width: 0;
+}
+
+.all-roster-row span:first-child,
+.all-roster-row span:nth-child(3),
+.all-roster-row span:nth-child(7),
+.all-roster-row span:nth-child(8) {
+  color: var(--gold);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.roster-side-panels {
+  display: grid;
+  gap: 16px;
+}
+
+.ranking-row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(80px, 1fr) repeat(4, minmax(44px, auto));
+  padding: 10px 12px;
+}
+
+.ranking-row span,
+.owner-summary-row span {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.owner-summary-row {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: minmax(84px, 1fr) repeat(3, auto);
+  padding: 10px 12px;
+}
+
 .team-dashboard {
   align-items: start;
   grid-template-columns: 300px minmax(0, 1.1fr) minmax(280px, 0.78fr);
@@ -709,6 +1079,10 @@ button {
 .leaderboard-panel,
 .trade-feed,
 .trade-counts,
+.countdown-card,
+.cut-tracker,
+.all-roster-panel,
+.ranking-panel,
 .roster-panel,
 .picks-panel,
 .team-trades-panel {
@@ -1068,6 +1442,30 @@ button {
   margin: 8px 0 22px;
 }
 
+.team-cut-summary {
+  align-items: center;
+  background:
+    linear-gradient(145deg, rgba(255, 200, 87, 0.16), rgba(7, 8, 6, 0.36));
+  border: 1px solid rgba(255, 200, 87, 0.28);
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 16px;
+  padding: 12px;
+}
+
+.team-cut-summary span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.team-cut-summary strong {
+  font-size: 2rem;
+  line-height: 1;
+}
+
 .position-grid {
   display: grid;
   gap: 8px;
@@ -1168,6 +1566,10 @@ button {
   .results-layout,
   .trade-layout,
   .trade-controls,
+  .home-dashboard,
+  .roster-hero-grid,
+  .roster-board-layout,
+  .roster-controls,
   .team-dashboard {
     grid-template-columns: 1fr;
   }
@@ -1178,6 +1580,10 @@ button {
 
   .team-switcher {
     grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .cut-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1209,7 +1615,7 @@ button {
   }
 
   .site-nav nav.is-open {
-    max-height: 320px;
+    max-height: 390px;
     opacity: 1;
     padding-top: 4px;
     pointer-events: auto;
@@ -1241,10 +1647,20 @@ button {
 
   .draft-status-bar,
   .draft-rounds,
+  .roster-stat-strip,
   .team-switcher,
   .fa-controls,
   .hub-grid {
     grid-template-columns: 1fr;
+  }
+
+  .cut-header {
+    align-items: stretch;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .cut-header > div:first-child {
+    grid-column: 1 / -1;
   }
 
   .console-row,
@@ -1360,6 +1776,16 @@ button {
   .trade-side-row small {
     text-align: left;
   }
+
+  .ranking-row,
+  .owner-summary-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ranking-row strong,
+  .owner-summary-row strong {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 560px) {
@@ -1403,6 +1829,19 @@ button {
 
   .pick-columns {
     grid-template-columns: 1fr;
+  }
+
+  .countdown-grid,
+  .cut-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cut-header {
+    grid-template-columns: 1fr;
+  }
+
+  .rookie-toggle {
+    justify-content: start;
   }
 }
 

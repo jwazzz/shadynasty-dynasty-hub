@@ -4,7 +4,7 @@ import "./globals.css";
 
 const title = "Shadynasty Dynasty League";
 const description =
-  "A live Google Sheets powered dynasty fantasy football hub for draft picks, league history, all trades, and team rosters.";
+  "A live Google Sheets powered dynasty fantasy football hub for rosters, rookie tags, cuts, draft picks, league history, and trades.";
 
 export async function generateMetadata(): Promise<Metadata> {
   const headerStore = await headers();
@@ -29,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title,
       description:
-        "Live draft picks, league history, all trades, and team rosters for the Shadynasty dynasty league.",
+        "Live rosters, rookie tags, cuts, draft picks, league history, and trades for the Shadynasty dynasty league.",
       images: [
         {
           url: imageUrl,
@@ -43,7 +43,7 @@ export async function generateMetadata(): Promise<Metadata> {
       card: "summary_large_image",
       title,
       description:
-        "Live draft picks, league history, all trades, and team rosters for the Shadynasty dynasty league.",
+        "Live rosters, rookie tags, cuts, draft picks, league history, and trades for the Shadynasty dynasty league.",
       images: [imageUrl],
     },
   };

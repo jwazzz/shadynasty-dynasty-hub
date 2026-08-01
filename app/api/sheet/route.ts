@@ -8,6 +8,10 @@ const SHEET_TABS = {
   results: { title: "League Results", gid: "714171874" },
   trades: { title: "All Trades", gid: "1880006300" },
   "free-agents": { title: "2025 Free Agents", gid: "297281140" },
+  "all-rosters": {
+    title: "All Rosters - Age & 2026 Rankings",
+    sheetName: "All Rosters - Age & 2026 Rankin",
+  },
   "team-craig": { title: "Craig", gid: "1145997661" },
   "team-danny": { title: "Danny", gid: "364688444" },
   "team-dj": { title: "DJ", gid: "1391042481" },
@@ -23,6 +27,7 @@ const SHEET_TABS = {
 type SheetKey = keyof typeof SHEET_TABS;
 
 const TRADE_GROUP_COLUMN_INDEX = 27;
+const ROOKIE_FILL_COLOR = "FFCFE2F3";
 const decoder = new TextDecoder();
 
 export const dynamic = "force-dynamic";
@@ -138,6 +143,14 @@ function parseStyleFillIds(stylesXml: string) {
   );
 }
 
+function parseFillColors(stylesXml: string) {
+  const fillsSection = stylesXml.match(/<fills[^>]*>([\s\S]*?)<\/fills>/)?.[1] ?? "";
+
+  return [...fillsSection.matchAll(/<fill>([\s\S]*?)<\/fill>/g)].map((match) =>
+    getXmlAttribute(match[1], "rgb").toUpperCase(),
+  );
+}
+
 function parseCellValue(cellAttributes: string, cellXml: string, sharedStrings: string[]) {
   const type = getXmlAttribute(cellAttributes, "t");
   const rawValue = cellXml.match(/<v>([\s\S]*?)<\/v>/)?.[1] ?? "";
@@ -238,6 +251,102 @@ function parseXlsxRows(input: ArrayBuffer) {
   return addStyledTradeGroupKeys(rows.map((row) => row ?? []), rowStyleKeys);
 }
 
+function normalizeWorksheetPath(target: string) {
+  return `xl/${target.replace(/^\//, "").replace(/^xl\//, "")}`;
+}
+
+function parseWorkbookSheets(workbookXml: string, workbookRelsXml: string) {
+  const relationships = new Map(
+    [...workbookRelsXml.matchAll(/<Relationship\b([^>]*)\/>/g)].map((match) => [
+      getXmlAttribute(match[1], "Id"),
+      normalizeWorksheetPath(getXmlAttribute(match[1], "Target")),
+    ]),
+  );
+
+  return [...workbookXml.matchAll(/<sheet\b([^>]*)\/>/g)].map((match) => {
+    const relationshipId = getXmlAttribute(match[1], "r:id");
+
+    return {
+      name: decodeXml(getXmlAttribute(match[1], "name")),
+      path: relationships.get(relationshipId) ?? "",
+    };
+  });
+}
+
+function parseStyledWorkbookRows(input: ArrayBuffer, sheetName: string) {
+  const files = unzipSync(new Uint8Array(input));
+  const workbookXml = files["xl/workbook.xml"];
+  const workbookRelsXml = files["xl/_rels/workbook.xml.rels"];
+  const stylesXmlFile = files["xl/styles.xml"];
+
+  if (!workbookXml || !workbookRelsXml || !stylesXmlFile) {
+    throw new Error("Missing workbook data.");
+  }
+
+  const workbookSheets = parseWorkbookSheets(
+    decoder.decode(workbookXml),
+    decoder.decode(workbookRelsXml),
+  );
+  const worksheetPath =
+    workbookSheets.find((sheet) => sheet.name === sheetName)?.path ??
+    workbookSheets.find((sheet) => sheet.name.startsWith(sheetName.slice(0, 24)))?.path;
+  const worksheetXml = worksheetPath ? files[worksheetPath] : undefined;
+
+  if (!worksheetXml) {
+    throw new Error("Missing worksheet data.");
+  }
+
+  const sharedStrings = files["xl/sharedStrings.xml"]
+    ? parseSharedStrings(decoder.decode(files["xl/sharedStrings.xml"]))
+    : [];
+  const stylesXml = decoder.decode(stylesXmlFile);
+  const styleFillIds = parseStyleFillIds(stylesXml).map(Number);
+  const fillColors = parseFillColors(stylesXml);
+  const worksheet = decoder.decode(worksheetXml);
+  const rows: string[][] = [];
+  const rookieRows = new Set<number>();
+
+  for (const rowMatch of worksheet.matchAll(/<row\b([^>]*)>([\s\S]*?)<\/row>/g)) {
+    const rowNumber = Number(getXmlAttribute(rowMatch[1], "r"));
+    const row: string[] = [];
+
+    for (const cellMatch of rowMatch[2].matchAll(/<c\b([^>]*)>([\s\S]*?)<\/c>/g)) {
+      const cellAttributes = cellMatch[1];
+      const reference = getXmlAttribute(cellAttributes, "r");
+      const columnIndex = columnIndexFromReference(reference);
+
+      if (columnIndex < 0) {
+        continue;
+      }
+
+      row[columnIndex] = parseCellValue(cellAttributes, cellMatch[2], sharedStrings).trim();
+
+      const styleIndex = Number(getXmlAttribute(cellAttributes, "s") || 0);
+      const fillId = styleFillIds[styleIndex] ?? 0;
+      const fillColor = fillColors[fillId] ?? "";
+
+      if (fillColor === ROOKIE_FILL_COLOR && columnIndex <= 7) {
+        rookieRows.add(rowNumber - 1);
+      }
+    }
+
+    rows[rowNumber - 1] = row;
+  }
+
+  const cleanRows = rows.map((row) => row ?? []);
+
+  return {
+    rows: cleanRows,
+    rookieRows: [...rookieRows]
+      .filter((rowIndex) => {
+        const row = cleanRows[rowIndex] ?? [];
+
+        return rowIndex > 1 && Boolean(row[0]?.trim() && row[1]?.trim() && row[2]?.trim());
+      })
+      .sort((a, b) => a - b),
+  };
+}
+
 async function fetchStyledTradeRows(gid: string) {
   const xlsxUrl = new URL(
     `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export`,
@@ -257,6 +366,26 @@ async function fetchStyledTradeRows(gid: string) {
   }
 
   return parseXlsxRows(await response.arrayBuffer());
+}
+
+async function fetchStyledWorkbookRows(sheetName: string) {
+  const xlsxUrl = new URL(
+    `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export`,
+  );
+  xlsxUrl.searchParams.set("format", "xlsx");
+
+  const response = await fetch(xlsxUrl, {
+    cache: "no-store",
+    headers: {
+      "Cache-Control": "no-cache",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Google Sheets returned ${response.status}.`);
+  }
+
+  return parseStyledWorkbookRows(await response.arrayBuffer(), sheetName);
 }
 
 function sanitizeRows(rows: string[][], tabKey: string) {
@@ -296,7 +425,31 @@ export async function GET(request: Request) {
 
   const tab = SHEET_TABS[requestedTab as SheetKey];
 
-  if (requestedTab === "trades") {
+  if (requestedTab === "all-rosters" && "sheetName" in tab) {
+    try {
+      const rosterSheet = await fetchStyledWorkbookRows(tab.sheetName);
+
+      return NextResponse.json(
+        {
+          key: requestedTab,
+          title: tab.title,
+          rows: sanitizeRows(rosterSheet.rows, requestedTab),
+          rookieRows: rosterSheet.rookieRows,
+          fetchedAt: new Date().toISOString(),
+        },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error: error instanceof Error ? error.message : "Unable to load roster workbook.",
+        },
+        { status: 502, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+  }
+
+  if (requestedTab === "trades" && "gid" in tab) {
     try {
       const rows = await fetchStyledTradeRows(tab.gid);
 
@@ -315,6 +468,13 @@ export async function GET(request: Request) {
     } catch {
       // Fall back to CSV below if the styled export is temporarily unavailable.
     }
+  }
+
+  if (!("gid" in tab)) {
+    return NextResponse.json(
+      { error: "Sheet tab is not available as CSV." },
+      { status: 400, headers: { "Cache-Control": "no-store" } },
+    );
   }
 
   const csvUrl = new URL(

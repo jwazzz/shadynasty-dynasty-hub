@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 type SheetState = {
   rows: string[][];
+  rookieRows: number[];
   fetchedAt: string;
   loading: boolean;
   error: string;
@@ -48,6 +49,30 @@ type RosterPlayer = {
   points: string;
   age: string;
   rank: string;
+  isRookie?: boolean;
+};
+
+type AllRosterPlayer = RosterPlayer & {
+  owner: string;
+  rowIndex: number;
+  adp: string;
+};
+
+type RosterRanking = {
+  owner: string;
+  def: string;
+  flex: string;
+  kicker: string;
+  qb: string;
+  rb: string;
+  te: string;
+  wr: string;
+  posPlayers: string;
+};
+
+type CutRequirement = {
+  owner: string;
+  cuts: number;
 };
 
 type PositionCount = {
@@ -114,9 +139,38 @@ const TRADE_OWNER_FILTERS = [
 ] as const;
 
 const TRADE_GROUP_COLUMN_INDEX = 27;
+const WEEK_ONE_KICKOFF_ISO = "2026-09-09T20:20:00-04:00";
+const CUT_DEADLINE_ISO = "2026-08-24T23:59:00-04:00";
+
+const CUT_REQUIREMENTS: CutRequirement[] = [
+  { owner: "Craig", cuts: 4 },
+  { owner: "Danny", cuts: 5 },
+  { owner: "DJ", cuts: 10 },
+  { owner: "Eddie", cuts: 9 },
+  { owner: "Evan", cuts: 3 },
+  { owner: "Jeremy", cuts: 4 },
+  { owner: "Ferraro", cuts: 4 },
+  { owner: "Corrado", cuts: 4 },
+  { owner: "Hack", cuts: 4 },
+  { owner: "John", cuts: 1 },
+];
+
+const OWNER_ALIASES = [
+  { owner: "Craig", aliases: ["Craig"] },
+  { owner: "Danny", aliases: ["Danny"] },
+  { owner: "DJ", aliases: ["DJ"] },
+  { owner: "Eddie", aliases: ["Eddie"] },
+  { owner: "Evan", aliases: ["Evan"] },
+  { owner: "Jeremy", aliases: ["Jeremy"] },
+  { owner: "Ferraro", aliases: ["Ferraro", "Joe F"] },
+  { owner: "Corrado", aliases: ["Corrado", "Joe C"] },
+  { owner: "Hack", aliases: ["Hack", "Joe H"] },
+  { owner: "John", aliases: ["John"] },
+];
 
 const EMPTY_SHEET: SheetState = {
   rows: [],
+  rookieRows: [],
   fetchedAt: "",
   loading: true,
   error: "",
@@ -145,12 +199,14 @@ function useSheet(tabKey: string, intervalMs = 0) {
 
         const payload = (await response.json()) as {
           rows: string[][];
+          rookieRows?: number[];
           fetchedAt: string;
         };
 
         if (active) {
           setSheet({
             rows: payload.rows,
+            rookieRows: payload.rookieRows ?? [],
             fetchedAt: payload.fetchedAt,
             loading: false,
             error: "",
@@ -233,6 +289,49 @@ function normalizeSearch(value: string | undefined) {
     .replace(/[^a-z0-9]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function canonicalOwner(owner: string | undefined) {
+  const normalizedOwner = normalizeSearch(owner);
+  const match = OWNER_ALIASES.find((entry) =>
+    entry.aliases.some((alias) => normalizeSearch(alias) === normalizedOwner),
+  );
+
+  return match?.owner ?? normalize(owner);
+}
+
+function getCutRequirement(owner: string | undefined) {
+  const canonical = canonicalOwner(owner);
+
+  return CUT_REQUIREMENTS.find((entry) => entry.owner === canonical)?.cuts ?? 0;
+}
+
+function getCountdownParts(targetIso: string, now: number) {
+  const totalSeconds = Math.max(0, Math.floor((new Date(targetIso).getTime() - now) / 1000));
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return {
+    days,
+    hours,
+    minutes,
+    seconds,
+    complete: totalSeconds === 0,
+  };
+}
+
+function useCountdown(targetIso: string) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  return getCountdownParts(targetIso, now);
 }
 
 function containsSearchToken(value: string, token: string) {
@@ -647,6 +746,96 @@ function parseFreeAgents(rows: string[][]): FreeAgent[] {
     .filter((agent) => agent.player && agent.pos);
 }
 
+function parseAllRosterRows(rows: string[][], rookieRows: number[]): AllRosterPlayer[] {
+  const rookieRowSet = new Set(rookieRows);
+
+  return rows
+    .map((row, rowIndex) => ({
+      owner: canonicalOwner(row[0]),
+      player: normalize(row[1]),
+      pos: normalize(row[2]),
+      nflTeam: normalize(row[3]),
+      points: normalize(row[4]),
+      age: normalize(row[5]),
+      rank: normalize(row[6]),
+      adp: normalize(row[7]),
+      rowIndex,
+      isRookie: rookieRowSet.has(rowIndex),
+    }))
+    .filter((player) => player.rowIndex > 1 && player.owner && player.player && player.pos);
+}
+
+function parseRosterRankings(rows: string[][]): RosterRanking[] {
+  const headerIndex = rows.findIndex(
+    (row) =>
+      normalize(row[9]) === "Teams" &&
+      normalize(row[10]) === "DEF" &&
+      normalize(row[17]) === "Pos Players ONLY",
+  );
+
+  if (headerIndex < 0) {
+    return [];
+  }
+
+  return rows
+    .slice(headerIndex + 1, headerIndex + 11)
+    .map((row) => ({
+      owner: canonicalOwner(row[9]),
+      def: normalize(row[10]),
+      flex: normalize(row[11]),
+      kicker: normalize(row[12]),
+      qb: normalize(row[13]),
+      rb: normalize(row[14]),
+      te: normalize(row[15]),
+      wr: normalize(row[16]),
+      posPlayers: normalize(row[17]),
+    }))
+    .filter((ranking) => ranking.owner);
+}
+
+function getRosterOwnerSummaries(players: AllRosterPlayer[]) {
+  return CUT_REQUIREMENTS.map((cut) => {
+    const ownerPlayers = players.filter((player) => player.owner === cut.owner);
+    const ages = ownerPlayers.map((player) => parseNumber(player.age)).filter(Boolean);
+    const rookieCount = ownerPlayers.filter((player) => player.isRookie).length;
+    const top100 = ownerPlayers.filter((player) => {
+      const rank = parseNumber(player.rank);
+
+      return rank > 0 && rank <= 100;
+    }).length;
+
+    return {
+      ...cut,
+      rosterCount: ownerPlayers.length,
+      rookieCount,
+      top100,
+      averageAge: ages.length
+        ? ages.reduce((total, age) => total + age, 0) / ages.length
+        : 0,
+    };
+  });
+}
+
+function getRookiePlayerKeys(players: AllRosterPlayer[]) {
+  return new Set(
+    players
+      .filter((player) => player.isRookie)
+      .map((player) => `${player.owner}::${normalizeSearch(player.player)}`),
+  );
+}
+
+function markTeamRookies(team: TeamSummary, rookieKeys: Set<string>): TeamSummary {
+  const owner = canonicalOwner(team.owner);
+
+  return {
+    ...team,
+    roster: team.roster.map((player) => ({
+      ...player,
+      isRookie: rookieKeys.has(`${owner}::${normalizeSearch(player.player)}`),
+    })),
+  };
+}
+
 function groupDraftByRound(picks: DraftPick[]) {
   return picks.reduce<Record<string, DraftPick[]>>((groups, pick) => {
     groups[pick.round] ??= [];
@@ -662,6 +851,7 @@ function getOwnerTab(key: string) {
 const NAV_LINKS = [
   { href: "/", label: "Home", id: "home" },
   { href: "/draft", label: "Draft", id: "draft" },
+  { href: "/rosters", label: "Rosters", id: "rosters" },
   { href: "/results", label: "League History", id: "results" },
   { href: "/trades", label: "All Trades", id: "trades" },
   { href: "/teams", label: "Teams", id: "teams" },
@@ -746,7 +936,87 @@ function PageChrome({
   );
 }
 
+function CountdownCard({ compact = false }: { compact?: boolean }) {
+  const countdown = useCountdown(WEEK_ONE_KICKOFF_ISO);
+  const countdownParts = [
+    { label: "Days", value: countdown.days },
+    { label: "Hours", value: countdown.hours },
+    { label: "Min", value: countdown.minutes },
+    { label: "Sec", value: countdown.seconds },
+  ];
+
+  return (
+    <article className={`countdown-card ${compact ? "is-compact" : ""}`}>
+      <div className="panel-title">
+        <span>Week 1 kickoff</span>
+        <h3>Patriots at Seahawks</h3>
+      </div>
+      <div className="countdown-grid" aria-label="Countdown to NFL Week 1 kickoff">
+        {countdownParts.map((part) => (
+          <div key={part.label}>
+            <strong>{String(part.value).padStart(2, "0")}</strong>
+            <span>{part.label}</span>
+          </div>
+        ))}
+      </div>
+      <p>Sept. 9, 2026 at 8:20 PM ET</p>
+    </article>
+  );
+}
+
+function CutTracker({ players = [] }: { players?: AllRosterPlayer[] }) {
+  const cutCountdown = useCountdown(CUT_DEADLINE_ISO);
+  const summaries = useMemo(() => getRosterOwnerSummaries(players), [players]);
+  const maxCuts = Math.max(...CUT_REQUIREMENTS.map((entry) => entry.cuts), 1);
+  const totalCuts = CUT_REQUIREMENTS.reduce((total, entry) => total + entry.cuts, 0);
+
+  return (
+    <section className="cut-tracker" aria-labelledby="cut-tracker-title">
+      <div className="cut-header">
+        <div>
+          <p className="eyebrow">Cuts due Aug. 24</p>
+          <h3 id="cut-tracker-title">Cut Tracker</h3>
+        </div>
+        <div className="cut-clock">
+          <span>{cutCountdown.days}</span>
+          <small>days left</small>
+        </div>
+        <div className="cut-total">
+          <span>{totalCuts}</span>
+          <small>total cuts</small>
+        </div>
+      </div>
+      <div className="cut-grid">
+        {summaries.map((summary) => (
+          <article
+            className={`cut-card ${summary.cuts >= 8 ? "is-critical" : ""}`}
+            key={summary.owner}
+          >
+            <div>
+              <span>{summary.owner}</span>
+              <strong>{summary.cuts}</strong>
+            </div>
+            <div className="cut-meter" aria-hidden="true">
+              <span style={{ width: `${(summary.cuts / maxCuts) * 100}%` }} />
+            </div>
+            <small>
+              {summary.rosterCount ? `${summary.rosterCount} rostered` : "syncing"}
+              {summary.rookieCount ? ` / ${summary.rookieCount} highlighted` : ""}
+            </small>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function HomePage() {
+  const rosterSheet = useSheet("all-rosters");
+  const rosterPlayers = useMemo(
+    () => parseAllRosterRows(rosterSheet.rows, rosterSheet.rookieRows),
+    [rosterSheet.rows, rosterSheet.rookieRows],
+  );
+
   useParallaxMotion();
 
   return (
@@ -767,8 +1037,13 @@ export function HomePage() {
             <strong>Draft</strong>
             <small>The final 2026 draft board.</small>
           </a>
+          <a className="hub-card" href="/rosters">
+            <span>Command board</span>
+            <strong>Rosters</strong>
+            <small>Ranks, ages, cuts, and rookies.</small>
+          </a>
           <a className="hub-card" href="/teams">
-            <span>Rosters</span>
+            <span>Team rooms</span>
             <strong>Teams</strong>
             <small>Every current owner tab.</small>
           </a>
@@ -788,6 +1063,11 @@ export function HomePage() {
             <small>Season records and all-time leaders.</small>
           </a>
         </div>
+      </section>
+
+      <section className="home-dashboard" aria-label="League countdown and cuts">
+        <CountdownCard />
+        <CutTracker players={rosterPlayers} />
       </section>
     </PageChrome>
   );
@@ -899,6 +1179,229 @@ export function DraftPage() {
               <p className="roster-empty">No picks for {teamFilter}.</p>
             )}
           </div>
+        )}
+      </section>
+    </PageChrome>
+  );
+}
+
+export function RostersPage() {
+  const [selectedOwner, setSelectedOwner] = useState("All");
+  const [selectedPosition, setSelectedPosition] = useState("All");
+  const [rosterQuery, setRosterQuery] = useState("");
+  const [rookiesOnly, setRookiesOnly] = useState(false);
+  const rosterSheet = useSheet("all-rosters", 60000);
+  const players = useMemo(
+    () => parseAllRosterRows(rosterSheet.rows, rosterSheet.rookieRows),
+    [rosterSheet.rows, rosterSheet.rookieRows],
+  );
+  const rankings = useMemo(() => parseRosterRankings(rosterSheet.rows), [rosterSheet.rows]);
+  const ownerSummaries = useMemo(() => getRosterOwnerSummaries(players), [players]);
+  const positions = useMemo(
+    () => Array.from(new Set(players.map((player) => player.pos))).filter(Boolean).sort(),
+    [players],
+  );
+  const filteredPlayers = useMemo(() => {
+    const query = normalizeSearch(rosterQuery);
+
+    return players.filter((player) => {
+      const searchable = [
+        player.owner,
+        player.player,
+        player.pos,
+        player.nflTeam,
+        player.age,
+        player.rank,
+        player.adp,
+      ].join(" ");
+      const matchesQuery = !query || normalizeSearch(searchable).includes(query);
+      const matchesOwner = selectedOwner === "All" || player.owner === selectedOwner;
+      const matchesPosition = selectedPosition === "All" || player.pos === selectedPosition;
+      const matchesRookie = !rookiesOnly || player.isRookie;
+
+      return matchesQuery && matchesOwner && matchesPosition && matchesRookie;
+    });
+  }, [players, rookiesOnly, rosterQuery, selectedOwner, selectedPosition]);
+  const rookieCount = players.filter((player) => player.isRookie).length;
+  const averageAge = players.length
+    ? players.reduce((total, player) => total + parseNumber(player.age), 0) / players.length
+    : 0;
+  const top100Count = players.filter((player) => {
+    const rank = parseNumber(player.rank);
+
+    return rank > 0 && rank <= 100;
+  }).length;
+
+  useParallaxMotion();
+
+  return (
+    <PageChrome active="rosters" status={`Rosters sync ${formatFetchTime(rosterSheet.fetchedAt)}`}>
+      <section className="section-band route-section roster-command-band" id="rosters">
+        <div className="roster-hero-grid">
+          <div className="section-heading">
+            <p className="eyebrow">All rosters</p>
+            <h2>Roster Command</h2>
+            <p>
+              Ages, 2026 positional ranks, superflex ADP, owner filters, and
+              the sheet-highlighted rookie tags in one board.
+            </p>
+          </div>
+          <CountdownCard compact />
+        </div>
+
+        <CutTracker players={players} />
+
+        <div className="roster-stat-strip">
+          <div>
+            <span>Players loaded</span>
+            <strong>{players.length || "..."}</strong>
+          </div>
+          <div>
+            <span>Highlighted rookies</span>
+            <strong>{rookieCount || "..."}</strong>
+          </div>
+          <div>
+            <span>Average age</span>
+            <strong>{averageAge ? averageAge.toFixed(1) : "..."}</strong>
+          </div>
+          <div>
+            <span>Top 100 ranks</span>
+            <strong>{top100Count || "..."}</strong>
+          </div>
+        </div>
+
+        <div className="roster-controls">
+          <label className="trade-search roster-search">
+            <span>Search</span>
+            <input
+              aria-label="Search all rosters"
+              onChange={(event) => setRosterQuery(event.target.value)}
+              placeholder="Player, owner, NFL team"
+              type="search"
+              value={rosterQuery}
+            />
+          </label>
+          <label className="roster-select">
+            <span>Owner</span>
+            <select
+              aria-label="Filter by owner"
+              onChange={(event) => setSelectedOwner(event.target.value)}
+              value={selectedOwner}
+            >
+              <option value="All">All owners</option>
+              {CUT_REQUIREMENTS.map((owner) => (
+                <option key={owner.owner} value={owner.owner}>
+                  {owner.owner}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="roster-select">
+            <span>Position</span>
+            <select
+              aria-label="Filter by position"
+              onChange={(event) => setSelectedPosition(event.target.value)}
+              value={selectedPosition}
+            >
+              <option value="All">All positions</option>
+              {positions.map((position) => (
+                <option key={position} value={position}>
+                  {position}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="rookie-toggle">
+            <input
+              checked={rookiesOnly}
+              onChange={(event) => setRookiesOnly(event.target.checked)}
+              type="checkbox"
+            />
+            <span>Rookies</span>
+          </label>
+        </div>
+
+        <div className="roster-board-layout">
+          <article className="all-roster-panel">
+            <div className="panel-title">
+              <span>{filteredPlayers.length} shown</span>
+              <h3>All Players</h3>
+            </div>
+            <div className="all-roster-table">
+              <div className="all-roster-header">
+                <span>Owner</span>
+                <span>Player</span>
+                <span>Pos</span>
+                <span>NFL</span>
+                <span>Pts</span>
+                <span>Age</span>
+                <span>Rank</span>
+                <span>ADP</span>
+              </div>
+              {filteredPlayers.map((player) => (
+                <div
+                  className={`all-roster-row ${player.isRookie ? "is-rookie" : ""}`}
+                  key={`${player.rowIndex}-${player.owner}-${player.player}`}
+                >
+                  <span>{player.owner}</span>
+                  <strong>
+                    {player.player}
+                    {player.isRookie && <em>Rookie</em>}
+                  </strong>
+                  <span>{player.pos}</span>
+                  <span>{player.nflTeam || "-"}</span>
+                  <span>{player.points || "-"}</span>
+                  <span>{player.age || "-"}</span>
+                  <span>{player.rank || "-"}</span>
+                  <span>{player.adp || "-"}</span>
+                </div>
+              ))}
+            </div>
+            {!rosterSheet.loading && filteredPlayers.length === 0 && (
+              <StatusMessage label="No players found" detail="Try another owner, position, or search." />
+            )}
+          </article>
+
+          <aside className="roster-side-panels">
+            <article className="ranking-panel">
+              <div className="panel-title">
+                <span>Sheet ranks</span>
+                <h3>Position Strength</h3>
+              </div>
+              <div className="ranking-list">
+                {rankings.map((ranking) => (
+                  <div className="ranking-row" key={ranking.owner}>
+                    <strong>{ranking.owner}</strong>
+                    <span>QB {ranking.qb}</span>
+                    <span>RB {ranking.rb}</span>
+                    <span>WR {ranking.wr}</span>
+                    <span>TE {ranking.te}</span>
+                  </div>
+                ))}
+              </div>
+            </article>
+
+            <article className="ranking-panel">
+              <div className="panel-title">
+                <span>Owner snapshot</span>
+                <h3>Age and Depth</h3>
+              </div>
+              <div className="owner-summary-list">
+                {ownerSummaries.map((summary) => (
+                  <div className="owner-summary-row" key={summary.owner}>
+                    <strong>{summary.owner}</strong>
+                    <span>{summary.rosterCount || "-"} players</span>
+                    <span>{summary.averageAge ? summary.averageAge.toFixed(1) : "-"} avg age</span>
+                    <span>{summary.top100} top 100</span>
+                  </div>
+                ))}
+              </div>
+            </article>
+          </aside>
+        </div>
+
+        {rosterSheet.error && (
+          <StatusMessage label="Roster feed unavailable" detail={rosterSheet.error} />
         )}
       </section>
     </PageChrome>
@@ -1138,10 +1641,17 @@ export function TeamsPage() {
   const activeTeamTab = getOwnerTab(activeTeamKey);
   const activeTeamSheet = useSheet(activeTeamKey, 30000);
   const teamNames = useAllTeamNames();
-  const activeTeam = useMemo(
-    () => parseTeam(activeTeamSheet.rows, activeTeamTab.owner),
-    [activeTeamSheet.rows, activeTeamTab.owner],
+  const rosterSheet = useSheet("all-rosters", 60000);
+  const rosterPlayers = useMemo(
+    () => parseAllRosterRows(rosterSheet.rows, rosterSheet.rookieRows),
+    [rosterSheet.rows, rosterSheet.rookieRows],
   );
+  const rookiePlayerKeys = useMemo(() => getRookiePlayerKeys(rosterPlayers), [rosterPlayers]);
+  const activeTeam = useMemo(
+    () => markTeamRookies(parseTeam(activeTeamSheet.rows, activeTeamTab.owner), rookiePlayerKeys),
+    [activeTeamSheet.rows, activeTeamTab.owner, rookiePlayerKeys],
+  );
+  const activeCutCount = getCutRequirement(activeTeam.owner || activeTeamTab.owner);
   const dashboardRef = useRef<HTMLDivElement>(null);
   const [positionFilter, setPositionFilter] =
     useState<(typeof ROSTER_POSITIONS)[number]>("All");
@@ -1207,6 +1717,10 @@ export function TeamsPage() {
             <span className="team-updated">{activeTeam.updated || "Sheet sync"}</span>
             <h3>{activeTeam.teamName}</h3>
             <p>{activeTeam.owner}</p>
+            <div className="team-cut-summary">
+              <span>Aug. 24 cuts</span>
+              <strong>{activeCutCount}</strong>
+            </div>
             <div className="position-grid">
               {activeTeam.positions.map((position) => (
                 <div key={`${position.pos}-${position.count}`}>
@@ -1219,7 +1733,8 @@ export function TeamsPage() {
 
           <article className="roster-panel">
             <div className="panel-title">
-              <span>Current roster</span>
+              <span>{filteredRoster.filter((player) => player.isRookie).length} highlighted</span>
+              <h3>Current roster</h3>
             </div>
             <div
               className="position-filter"
@@ -1240,8 +1755,14 @@ export function TeamsPage() {
             </div>
             <div className="roster-table">
               {filteredRoster.map((player) => (
-                <div className="roster-row" key={`${player.player}-${player.pos}`}>
-                  <strong>{player.player}</strong>
+                <div
+                  className={`roster-row ${player.isRookie ? "is-rookie" : ""}`}
+                  key={`${player.player}-${player.pos}`}
+                >
+                  <strong>
+                    {player.player}
+                    {player.isRookie && <em>Rookie</em>}
+                  </strong>
                   <span>{player.pos}</span>
                   <span>{player.nflTeam}</span>
                   <span>{player.points || "-"}</span>
