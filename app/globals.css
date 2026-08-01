@@ -930,12 +930,13 @@ button {
   margin: 0 0 14px;
 }
 
-.roster-jump-nav a {
+.roster-jump-nav button {
   align-items: center;
   background: rgba(7, 8, 6, 0.44);
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--muted);
+  cursor: pointer;
   display: inline-flex;
   font-size: 0.82rem;
   font-weight: 800;
@@ -946,7 +947,7 @@ button {
   transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
 }
 
-.roster-jump-nav a:hover {
+.roster-jump-nav button:hover {
   background: rgba(184, 255, 92, 0.12);
   border-color: rgba(184, 255, 92, 0.52);
   color: var(--foreground);
@@ -1987,7 +1988,7 @@ button {
     padding: 10px;
   }
 
-  .roster-jump-nav a {
+  .roster-jump-nav button {
     flex: 1 1 132px;
   }
 

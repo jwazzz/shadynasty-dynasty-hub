@@ -1255,6 +1255,28 @@ export function RostersPage() {
     return rank > 0 && rank <= 100;
   }).length;
 
+  const handleRosterJump = (targetId: string) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const target = document.getElementById(targetId);
+    if (!target) {
+      return;
+    }
+
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
+    const root = document.documentElement;
+    const previousBehavior = root.style.scrollBehavior;
+    root.style.scrollBehavior = "auto";
+    target.scrollIntoView({ block: "start" });
+    root.style.scrollBehavior = previousBehavior;
+    window.history.replaceState(null, "", `#${targetId}`);
+  };
+
   useParallaxMotion();
 
   return (
@@ -1315,9 +1337,15 @@ export function RostersPage() {
         </div>
 
         <nav className="roster-jump-nav" aria-label="All rosters sections">
-          <a href="#all-roster-list">Players</a>
-          <a href="#position-strength">Position Strength</a>
-          <a href="#age-depth">Age & Depth</a>
+          <button onClick={() => handleRosterJump("all-roster-list")} type="button">
+            Players
+          </button>
+          <button onClick={() => handleRosterJump("position-strength")} type="button">
+            Position Strength
+          </button>
+          <button onClick={() => handleRosterJump("age-depth")} type="button">
+            Age & Depth
+          </button>
         </nav>
 
         <div className="team-switcher all-roster-owner-tabs" role="tablist" aria-label="Owner filters">
