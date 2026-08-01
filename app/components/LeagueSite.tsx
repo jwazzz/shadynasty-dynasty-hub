@@ -851,7 +851,7 @@ function getOwnerTab(key: string) {
 const NAV_LINKS = [
   { href: "/", label: "Home", id: "home" },
   { href: "/draft", label: "Draft", id: "draft" },
-  { href: "/rosters", label: "Rosters", id: "rosters" },
+  { href: "/rosters", label: "All Rosters", id: "rosters" },
   { href: "/results", label: "League History", id: "results" },
   { href: "/trades", label: "All Trades", id: "trades" },
   { href: "/teams", label: "Teams", id: "teams" },
@@ -1038,8 +1038,8 @@ export function HomePage() {
             <small>The final 2026 draft board.</small>
           </a>
           <a className="hub-card" href="/rosters">
-            <span>Command board</span>
-            <strong>Rosters</strong>
+            <span>Age and rankings</span>
+            <strong>All Rosters</strong>
             <small>Ranks, ages, cuts, and rookies.</small>
           </a>
           <a className="hub-card" href="/teams">
@@ -1235,12 +1235,12 @@ export function RostersPage() {
   useParallaxMotion();
 
   return (
-    <PageChrome active="rosters" status={`Rosters sync ${formatFetchTime(rosterSheet.fetchedAt)}`}>
+    <PageChrome active="rosters" status={`Age rankings sync ${formatFetchTime(rosterSheet.fetchedAt)}`}>
       <section className="section-band route-section roster-command-band" id="rosters">
         <div className="roster-hero-grid">
           <div className="section-heading">
             <p className="eyebrow">All rosters</p>
-            <h2>Roster Command</h2>
+            <h2>All Rosters: Age & Rankings</h2>
             <p>
               Ages, 2026 positional ranks, superflex ADP, owner filters, and
               the sheet-highlighted rookie tags in one board.
