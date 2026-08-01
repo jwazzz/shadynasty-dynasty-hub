@@ -1192,6 +1192,7 @@ export function RostersPage() {
   const [selectedPosition, setSelectedPosition] = useState("All");
   const [rosterQuery, setRosterQuery] = useState("");
   const [rookiesOnly, setRookiesOnly] = useState(false);
+  const teamNames = useAllTeamNames();
   const rosterSheet = useSheet("all-rosters", 60000);
   const players = useMemo(
     () => parseAllRosterRows(rosterSheet.rows, rosterSheet.rookieRows),
@@ -1202,6 +1203,10 @@ export function RostersPage() {
   const positions = useMemo(
     () => Array.from(new Set(players.map((player) => player.pos))).filter(Boolean).sort(),
     [players],
+  );
+  const positionOptions = useMemo(
+    () => ROSTER_POSITIONS.filter((position) => position === "All" || positions.includes(position)),
+    [positions],
   );
   const filteredPlayers = useMemo(() => {
     const query = normalizeSearch(rosterQuery);
@@ -1293,95 +1298,79 @@ export function RostersPage() {
           </label>
         </div>
 
-        <div className="roster-filter-group">
-          <div className="filter-heading">
-            <span>Owner</span>
-            <strong>{selectedOwner === "All" ? "All owners" : selectedOwner}</strong>
-          </div>
-          <div className="owner-filter-bar roster-owner-filter" aria-label="Owner filters">
-            <button
-              aria-pressed={selectedOwner === "All"}
-              className={selectedOwner === "All" ? "active" : ""}
-              onClick={() => setSelectedOwner("All")}
-              type="button"
-            >
-              All
-            </button>
-            {CUT_REQUIREMENTS.map((owner) => (
-              <button
-                aria-pressed={selectedOwner === owner.owner}
-                className={selectedOwner === owner.owner ? "active" : ""}
-                key={owner.owner}
-                onClick={() => setSelectedOwner(owner.owner)}
-                type="button"
-              >
-                {owner.owner}
-              </button>
-            ))}
-          </div>
-        </div>
+        <div className="team-switcher all-roster-owner-tabs" role="tablist" aria-label="Owner filters">
+          <button
+            aria-selected={selectedOwner === "All"}
+            className={selectedOwner === "All" ? "active" : ""}
+            onClick={() => setSelectedOwner("All")}
+            role="tab"
+            type="button"
+          >
+            <span>All</span>
+            <small>{players.length || "..."} players</small>
+          </button>
+          {TEAM_TABS.map((team) => {
+            const owner = team.alias;
+            const ownerCount = players.filter((player) => player.owner === owner).length;
 
-        <div className="roster-filter-group">
-          <div className="filter-heading">
-            <span>Position</span>
-            <strong>{selectedPosition === "All" ? "All positions" : selectedPosition}</strong>
-          </div>
-          <div className="position-filter roster-position-filter" aria-label="Position filters">
-            <button
-              aria-pressed={selectedPosition === "All"}
-              className={selectedPosition === "All" ? "active" : ""}
-              onClick={() => setSelectedPosition("All")}
-              type="button"
-            >
-              All
-            </button>
-            {positions.map((position) => (
+            return (
               <button
-                aria-pressed={selectedPosition === position}
-                className={selectedPosition === position ? "active" : ""}
-                key={position}
-                onClick={() => setSelectedPosition(position)}
+                aria-selected={selectedOwner === owner}
+                className={selectedOwner === owner ? "active" : ""}
+                key={team.key}
+                onClick={() => setSelectedOwner(owner)}
+                role="tab"
                 type="button"
               >
-                {position}
+                <span>{owner}</span>
+                <small>{teamNames[team.key] || `${ownerCount || "..."} players`}</small>
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
 
         <div className="roster-board-layout">
           <article className="all-roster-panel">
             <div className="panel-title">
               <span>{filteredPlayers.length} shown</span>
-              <h3>All Players</h3>
+              <h3>{selectedOwner === "All" ? "All Players" : `${selectedOwner} Roster`}</h3>
             </div>
-            <div className="all-roster-table">
-              <div className="all-roster-header">
-                <span>Owner</span>
-                <span>Player</span>
-                <span>Pos</span>
-                <span>NFL</span>
-                <span>Pts</span>
-                <span>Age</span>
-                <span>Rank</span>
-                <span>ADP</span>
-              </div>
+            <div
+              className="position-filter roster-position-filter"
+              role="tablist"
+              aria-label="Filter all rosters by position"
+            >
+              {positionOptions.map((position) => (
+                <button
+                  aria-pressed={selectedPosition === position}
+                  className={selectedPosition === position ? "active" : ""}
+                  key={position}
+                  onClick={() => setSelectedPosition(position)}
+                  type="button"
+                >
+                  {position}
+                </button>
+              ))}
+            </div>
+            <div className="roster-table all-roster-table">
               {filteredPlayers.map((player) => (
                 <div
-                  className={`all-roster-row ${player.isRookie ? "is-rookie" : ""}`}
+                  className={`roster-row all-roster-row ${player.isRookie ? "is-rookie" : ""}`}
                   key={`${player.rowIndex}-${player.owner}-${player.player}`}
                 >
-                  <span data-label="Owner">{player.owner}</span>
                   <strong>
                     {player.player}
                     {player.isRookie && <em>Rookie</em>}
                   </strong>
-                  <span data-label="Pos">{player.pos}</span>
-                  <span data-label="NFL">{player.nflTeam || "-"}</span>
-                  <span data-label="Pts">{player.points || "-"}</span>
-                  <span data-label="Age">{player.age || "-"}</span>
-                  <span data-label="Rank">{player.rank || "-"}</span>
-                  <span data-label="ADP">{player.adp || "-"}</span>
+                  <span>{player.pos}</span>
+                  <span>{player.nflTeam || "-"}</span>
+                  <span>{player.rank ? `#${player.rank}` : "-"}</span>
+                  <small className="all-roster-meta">
+                    <b>{player.owner}</b>
+                    <span>Age {player.age || "-"}</span>
+                    <span>ADP {player.adp || "-"}</span>
+                    <span>Pts {player.points || "-"}</span>
+                  </small>
                 </div>
               ))}
             </div>
@@ -1427,9 +1416,11 @@ export function RostersPage() {
             </article>
           </aside>
         </div>
-
         {rosterSheet.error && (
-          <StatusMessage label="Roster feed unavailable" detail={rosterSheet.error} />
+          <StatusMessage label="Rosters feed unavailable" detail={rosterSheet.error} />
+        )}
+        {rosterSheet.loading && !players.length && (
+          <StatusMessage label="Loading rosters" detail="Pulling the All Rosters - Age & 2026 Rankings tab." />
         )}
       </section>
     </PageChrome>
