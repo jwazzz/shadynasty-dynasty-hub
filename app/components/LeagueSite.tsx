@@ -1283,36 +1283,6 @@ export function RostersPage() {
               value={rosterQuery}
             />
           </label>
-          <label className="roster-select">
-            <span>Owner</span>
-            <select
-              aria-label="Filter by owner"
-              onChange={(event) => setSelectedOwner(event.target.value)}
-              value={selectedOwner}
-            >
-              <option value="All">All owners</option>
-              {CUT_REQUIREMENTS.map((owner) => (
-                <option key={owner.owner} value={owner.owner}>
-                  {owner.owner}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="roster-select">
-            <span>Position</span>
-            <select
-              aria-label="Filter by position"
-              onChange={(event) => setSelectedPosition(event.target.value)}
-              value={selectedPosition}
-            >
-              <option value="All">All positions</option>
-              {positions.map((position) => (
-                <option key={position} value={position}>
-                  {position}
-                </option>
-              ))}
-            </select>
-          </label>
           <label className="rookie-toggle">
             <input
               checked={rookiesOnly}
@@ -1321,6 +1291,62 @@ export function RostersPage() {
             />
             <span>Rookies</span>
           </label>
+        </div>
+
+        <div className="roster-filter-group">
+          <div className="filter-heading">
+            <span>Owner</span>
+            <strong>{selectedOwner === "All" ? "All owners" : selectedOwner}</strong>
+          </div>
+          <div className="owner-filter-bar roster-owner-filter" aria-label="Owner filters">
+            <button
+              aria-pressed={selectedOwner === "All"}
+              className={selectedOwner === "All" ? "active" : ""}
+              onClick={() => setSelectedOwner("All")}
+              type="button"
+            >
+              All
+            </button>
+            {CUT_REQUIREMENTS.map((owner) => (
+              <button
+                aria-pressed={selectedOwner === owner.owner}
+                className={selectedOwner === owner.owner ? "active" : ""}
+                key={owner.owner}
+                onClick={() => setSelectedOwner(owner.owner)}
+                type="button"
+              >
+                {owner.owner}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="roster-filter-group">
+          <div className="filter-heading">
+            <span>Position</span>
+            <strong>{selectedPosition === "All" ? "All positions" : selectedPosition}</strong>
+          </div>
+          <div className="position-filter roster-position-filter" aria-label="Position filters">
+            <button
+              aria-pressed={selectedPosition === "All"}
+              className={selectedPosition === "All" ? "active" : ""}
+              onClick={() => setSelectedPosition("All")}
+              type="button"
+            >
+              All
+            </button>
+            {positions.map((position) => (
+              <button
+                aria-pressed={selectedPosition === position}
+                className={selectedPosition === position ? "active" : ""}
+                key={position}
+                onClick={() => setSelectedPosition(position)}
+                type="button"
+              >
+                {position}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="roster-board-layout">
@@ -1345,17 +1371,17 @@ export function RostersPage() {
                   className={`all-roster-row ${player.isRookie ? "is-rookie" : ""}`}
                   key={`${player.rowIndex}-${player.owner}-${player.player}`}
                 >
-                  <span>{player.owner}</span>
+                  <span data-label="Owner">{player.owner}</span>
                   <strong>
                     {player.player}
                     {player.isRookie && <em>Rookie</em>}
                   </strong>
-                  <span>{player.pos}</span>
-                  <span>{player.nflTeam || "-"}</span>
-                  <span>{player.points || "-"}</span>
-                  <span>{player.age || "-"}</span>
-                  <span>{player.rank || "-"}</span>
-                  <span>{player.adp || "-"}</span>
+                  <span data-label="Pos">{player.pos}</span>
+                  <span data-label="NFL">{player.nflTeam || "-"}</span>
+                  <span data-label="Pts">{player.points || "-"}</span>
+                  <span data-label="Age">{player.age || "-"}</span>
+                  <span data-label="Rank">{player.rank || "-"}</span>
+                  <span data-label="ADP">{player.adp || "-"}</span>
                 </div>
               ))}
             </div>

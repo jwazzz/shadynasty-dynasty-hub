@@ -896,6 +896,7 @@ button {
 }
 
 .roster-stat-strip span,
+.filter-heading span,
 .roster-select span,
 .rookie-toggle span {
   color: var(--muted);
@@ -914,12 +915,52 @@ button {
 .roster-controls {
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(260px, 1fr) minmax(150px, 0.26fr) minmax(150px, 0.26fr) auto;
-  margin-bottom: 16px;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  margin-bottom: 12px;
 }
 
 .roster-search {
   min-height: 70px;
+}
+
+.roster-filter-group {
+  background: rgba(7, 8, 6, 0.32);
+  border: 1px solid rgba(247, 243, 232, 0.1);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 12px;
+}
+
+.filter-heading {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.filter-heading strong {
+  color: var(--foreground);
+  font-size: 0.96rem;
+}
+
+.roster-owner-filter,
+.roster-position-filter {
+  margin-bottom: 0;
+}
+
+.roster-owner-filter button {
+  flex: 1 1 82px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.roster-position-filter button {
+  flex: 0 1 64px;
+  min-width: 56px;
+  text-align: center;
 }
 
 .roster-select,
@@ -1680,6 +1721,53 @@ button {
     gap: 6px;
   }
 
+  .all-roster-panel {
+    padding: 14px;
+  }
+
+  .all-roster-table {
+    overflow-x: visible;
+  }
+
+  .all-roster-header {
+    display: none;
+  }
+
+  .all-roster-row {
+    align-items: stretch;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-width: 0;
+    padding: 12px;
+  }
+
+  .all-roster-row strong {
+    font-size: 1.02rem;
+    grid-column: 1 / -1;
+  }
+
+  .all-roster-row span {
+    align-items: center;
+    background: rgba(247, 243, 232, 0.04);
+    border: 1px solid rgba(247, 243, 232, 0.08);
+    border-radius: 8px;
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+    min-height: 38px;
+    overflow-wrap: anywhere;
+    padding: 8px;
+  }
+
+  .all-roster-row span::before {
+    color: var(--muted);
+    content: attr(data-label);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
   .fa-panel {
     padding: 14px;
   }
@@ -1850,6 +1938,22 @@ button {
 
   .rookie-toggle {
     justify-content: start;
+  }
+
+  .roster-filter-group {
+    padding: 10px;
+  }
+
+  .roster-owner-filter button {
+    flex-basis: calc(50% - 4px);
+  }
+
+  .roster-position-filter button {
+    flex: 1 1 62px;
+  }
+
+  .all-roster-row {
+    grid-template-columns: 1fr;
   }
 }
 
