@@ -33,6 +33,10 @@ type SheetPayload = {
   rookieRows?: number[];
   fetchedAt: string;
 };
+type EdgeCache = {
+  match: (request: Request) => Promise<Response | undefined>;
+  put: (request: Request, response: Response) => Promise<void>;
+};
 
 const TRADE_GROUP_COLUMN_INDEX = 27;
 const ROOKIE_FILL_COLOR = "FFCFE2F3";
@@ -111,6 +115,83 @@ function sheetJson(payload: SheetPayload, tabKey: string, status: string) {
   return NextResponse.json(payload, {
     headers: getSheetCacheHeaders(tabKey, status),
   });
+}
+
+function getDefaultEdgeCache() {
+  const cacheStorage = (
+    globalThis as typeof globalThis & {
+      caches?: { default?: EdgeCache };
+    }
+  ).caches;
+
+  return cacheStorage?.default ?? null;
+}
+
+function getEdgeCacheKey(request: Request, tabKey: string) {
+  const url = new URL(request.url);
+
+  url.search = "";
+  url.searchParams.set("tab", tabKey);
+
+  return new Request(url.toString(), {
+    method: "GET",
+    headers: { accept: "application/json" },
+  });
+}
+
+function withSheetCacheStatus(response: Response, status: string) {
+  const headers = new Headers(response.headers);
+
+  headers.set("X-Sheet-Cache", status);
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+async function getEdgeSheetCache(request: Request, tabKey: string) {
+  const cache = getDefaultEdgeCache();
+
+  if (!cache) {
+    return null;
+  }
+
+  try {
+    const response = await cache.match(getEdgeCacheKey(request, tabKey));
+
+    return response ? withSheetCacheStatus(response, "EDGE") : null;
+  } catch {
+    return null;
+  }
+}
+
+async function putEdgeSheetCache(request: Request, tabKey: string, response: Response) {
+  const cache = getDefaultEdgeCache();
+
+  if (!cache) {
+    return;
+  }
+
+  try {
+    await cache.put(getEdgeCacheKey(request, tabKey), response);
+  } catch {
+    // Edge cache is a performance layer; the response should still be served.
+  }
+}
+
+async function cacheableSheetJson(
+  request: Request,
+  payload: SheetPayload,
+  tabKey: string,
+  status: string,
+) {
+  const response = sheetJson(payload, tabKey, status);
+
+  await putEdgeSheetCache(request, tabKey, response.clone());
+
+  return response;
 }
 
 function sheetError(message: string) {
@@ -512,10 +593,16 @@ export async function GET(request: Request) {
   }
 
   const tab = SHEET_TABS[requestedTab as SheetKey];
+  const edgeCached = await getEdgeSheetCache(request, requestedTab);
+
+  if (edgeCached) {
+    return edgeCached;
+  }
+
   const cached = getSheetCache(requestedTab);
 
   if (cached) {
-    return sheetJson(cached.payload, requestedTab, cached.status);
+    return cacheableSheetJson(request, cached.payload, requestedTab, cached.status);
   }
 
   if (requestedTab === "all-rosters" && "sheetName" in tab) {
@@ -529,12 +616,12 @@ export async function GET(request: Request) {
         fetchedAt: new Date().toISOString(),
       });
 
-      return sheetJson(payload, requestedTab, "MISS");
+      return cacheableSheetJson(request, payload, requestedTab, "MISS");
     } catch (error) {
       const stale = getSheetCache(requestedTab, true);
 
       if (stale) {
-        return sheetJson(stale.payload, requestedTab, stale.status);
+        return cacheableSheetJson(request, stale.payload, requestedTab, stale.status);
       }
 
       return sheetError(
@@ -556,7 +643,7 @@ export async function GET(request: Request) {
           fetchedAt: new Date().toISOString(),
         });
 
-        return sheetJson(payload, requestedTab, "MISS");
+        return cacheableSheetJson(request, payload, requestedTab, "MISS");
       }
     } catch {
       // Fall back to CSV below if the styled export is temporarily unavailable.
@@ -597,12 +684,12 @@ export async function GET(request: Request) {
       fetchedAt: new Date().toISOString(),
     });
 
-    return sheetJson(payload, requestedTab, "MISS");
+    return cacheableSheetJson(request, payload, requestedTab, "MISS");
   } catch (error) {
     const stale = getSheetCache(requestedTab, true);
 
     if (stale) {
-      return sheetJson(stale.payload, requestedTab, stale.status);
+      return cacheableSheetJson(request, stale.payload, requestedTab, stale.status);
     }
 
     return sheetError(
