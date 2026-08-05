@@ -25,12 +25,100 @@ const SHEET_TABS = {
 } as const;
 
 type SheetKey = keyof typeof SHEET_TABS;
+type SheetPayload = {
+  key: string;
+  title: string;
+  gid?: string;
+  rows: string[][];
+  rookieRows?: number[];
+  fetchedAt: string;
+};
 
 const TRADE_GROUP_COLUMN_INDEX = 27;
 const ROOKIE_FILL_COLOR = "FFCFE2F3";
+const DEFAULT_CACHE_TTL_MS = 60_000;
+const STALE_FALLBACK_MS = 10 * 60_000;
 const decoder = new TextDecoder();
+const sheetCache = new Map<
+  string,
+  {
+    expiresAt: number;
+    staleUntil: number;
+    payload: SheetPayload;
+  }
+>();
 
 export const dynamic = "force-dynamic";
+
+function getCacheTtlMs(tabKey: string) {
+  if (tabKey === "draft") {
+    return 10_000;
+  }
+
+  if (tabKey.startsWith("team-")) {
+    return 30_000;
+  }
+
+  if (tabKey === "all-rosters") {
+    return 120_000;
+  }
+
+  return DEFAULT_CACHE_TTL_MS;
+}
+
+function getSheetCache(tabKey: string, allowStale = false) {
+  const cached = sheetCache.get(tabKey);
+  const now = Date.now();
+
+  if (!cached) {
+    return null;
+  }
+
+  if (cached.expiresAt > now) {
+    return { payload: cached.payload, status: "HIT" };
+  }
+
+  if (allowStale && cached.staleUntil > now) {
+    return { payload: cached.payload, status: "STALE" };
+  }
+
+  return null;
+}
+
+function setSheetCache(tabKey: string, payload: SheetPayload) {
+  const ttl = getCacheTtlMs(tabKey);
+  const now = Date.now();
+
+  sheetCache.set(tabKey, {
+    expiresAt: now + ttl,
+    staleUntil: now + ttl + STALE_FALLBACK_MS,
+    payload,
+  });
+
+  return payload;
+}
+
+function getSheetCacheHeaders(tabKey: string, status: string) {
+  const seconds = Math.max(1, Math.floor(getCacheTtlMs(tabKey) / 1000));
+
+  return {
+    "Cache-Control": `public, max-age=${seconds}, s-maxage=${seconds}, stale-while-revalidate=300`,
+    "X-Sheet-Cache": status,
+  };
+}
+
+function sheetJson(payload: SheetPayload, tabKey: string, status: string) {
+  return NextResponse.json(payload, {
+    headers: getSheetCacheHeaders(tabKey, status),
+  });
+}
+
+function sheetError(message: string) {
+  return NextResponse.json(
+    { error: message },
+    { status: 502, headers: { "Cache-Control": "no-store" } },
+  );
+}
 
 function parseCsv(input: string) {
   const rows: string[][] = [];
@@ -424,27 +512,33 @@ export async function GET(request: Request) {
   }
 
   const tab = SHEET_TABS[requestedTab as SheetKey];
+  const cached = getSheetCache(requestedTab);
+
+  if (cached) {
+    return sheetJson(cached.payload, requestedTab, cached.status);
+  }
 
   if (requestedTab === "all-rosters" && "sheetName" in tab) {
     try {
       const rosterSheet = await fetchStyledWorkbookRows(tab.sheetName);
+      const payload = setSheetCache(requestedTab, {
+        key: requestedTab,
+        title: tab.title,
+        rows: sanitizeRows(rosterSheet.rows, requestedTab),
+        rookieRows: rosterSheet.rookieRows,
+        fetchedAt: new Date().toISOString(),
+      });
 
-      return NextResponse.json(
-        {
-          key: requestedTab,
-          title: tab.title,
-          rows: sanitizeRows(rosterSheet.rows, requestedTab),
-          rookieRows: rosterSheet.rookieRows,
-          fetchedAt: new Date().toISOString(),
-        },
-        { headers: { "Cache-Control": "no-store" } },
-      );
+      return sheetJson(payload, requestedTab, "MISS");
     } catch (error) {
-      return NextResponse.json(
-        {
-          error: error instanceof Error ? error.message : "Unable to load roster workbook.",
-        },
-        { status: 502, headers: { "Cache-Control": "no-store" } },
+      const stale = getSheetCache(requestedTab, true);
+
+      if (stale) {
+        return sheetJson(stale.payload, requestedTab, stale.status);
+      }
+
+      return sheetError(
+        error instanceof Error ? error.message : "Unable to load roster workbook.",
       );
     }
   }
@@ -454,16 +548,15 @@ export async function GET(request: Request) {
       const rows = await fetchStyledTradeRows(tab.gid);
 
       if (rows.length) {
-        return NextResponse.json(
-          {
-            key: requestedTab,
-            title: tab.title,
-            gid: tab.gid,
-            rows,
-            fetchedAt: new Date().toISOString(),
-          },
-          { headers: { "Cache-Control": "no-store" } },
-        );
+        const payload = setSheetCache(requestedTab, {
+          key: requestedTab,
+          title: tab.title,
+          gid: tab.gid,
+          rows,
+          fetchedAt: new Date().toISOString(),
+        });
+
+        return sheetJson(payload, requestedTab, "MISS");
       }
     } catch {
       // Fall back to CSV below if the styled export is temporarily unavailable.
@@ -483,30 +576,37 @@ export async function GET(request: Request) {
   csvUrl.searchParams.set("format", "csv");
   csvUrl.searchParams.set("gid", tab.gid);
 
-  const response = await fetch(csvUrl, {
-    cache: "no-store",
-    headers: {
-      "Cache-Control": "no-cache",
-    },
-  });
+  try {
+    const response = await fetch(csvUrl, {
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+      },
+    });
 
-  if (!response.ok) {
-    return NextResponse.json(
-      { error: `Google Sheets returned ${response.status}.` },
-      { status: 502, headers: { "Cache-Control": "no-store" } },
-    );
-  }
+    if (!response.ok) {
+      throw new Error(`Google Sheets returned ${response.status}.`);
+    }
 
-  const csv = await response.text();
-
-  return NextResponse.json(
-    {
+    const csv = await response.text();
+    const payload = setSheetCache(requestedTab, {
       key: requestedTab,
       title: tab.title,
       gid: tab.gid,
       rows: sanitizeRows(parseCsv(csv), requestedTab),
       fetchedAt: new Date().toISOString(),
-    },
-    { headers: { "Cache-Control": "no-store" } },
-  );
+    });
+
+    return sheetJson(payload, requestedTab, "MISS");
+  } catch (error) {
+    const stale = getSheetCache(requestedTab, true);
+
+    if (stale) {
+      return sheetJson(stale.payload, requestedTab, stale.status);
+    }
+
+    return sheetError(
+      error instanceof Error ? error.message : "Unable to load Google Sheet.",
+    );
+  }
 }

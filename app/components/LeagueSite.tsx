@@ -189,9 +189,7 @@ function useSheet(tabKey: string, intervalMs = 0) {
       }
 
       try {
-        const response = await fetch(`/api/sheet?tab=${tabKey}&ts=${Date.now()}`, {
-          cache: "no-store",
-        });
+        const response = await fetch(`/api/sheet?tab=${encodeURIComponent(tabKey)}`);
 
         if (!response.ok) {
           throw new Error(`Sheet request failed: ${response.status}`);
@@ -249,7 +247,7 @@ function useAllTeamNames() {
     Promise.all(
       TEAM_TABS.map(async (team) => {
         try {
-          const response = await fetch(`/api/sheet?tab=${team.key}`, { cache: "no-store" });
+          const response = await fetch(`/api/sheet?tab=${encodeURIComponent(team.key)}`);
           if (!response.ok) {
             return [team.key, ""] as const;
           }
